@@ -6,11 +6,13 @@ implementada. Não deixe nenhum "[a preencher]" na versão final (Aula 16).
 
 -->
 
-# [Nome do App da Squad] — Sistema de Agendamento para Clínica Médica
+# Clinic Hub — Sistema de Agendamento para Clínica Médica
 
 > Projeto integrador da Unidade Curricular **Aplicações Mobile**, construído ao longo de 16 aulas.
 
-**Squad:** [nomes dos integrantes]
+**Squad:** Guilherme Soares da Silva
+Guilherme dos Anjos Silva
+João Vitor Colleto
 **Curso:** Superior de Tecnologia em Análise e Desenvolvimento de Sistemas — Turma STADS
 **Professor:** Prof. Dr. Maurício Falvo
 
