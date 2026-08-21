@@ -1,5 +1,5 @@
 // src/screens/Medico/Op1Screen.js (Reescrito)
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -11,7 +11,8 @@ import {
   LayoutAnimation,
   UIManager,
   Button,
-  Image
+  Image,
+  ActivityIndicator
 } from 'react-native';
 
 // Ícones (você precisará ter esses arquivos PNG ou usar uma biblioteca de ícones)
@@ -19,6 +20,7 @@ import {
 const IconeLupa = require('../../../assets/lupa.png'); // Exemplo
 const IconeSeta = require('../../../assets/seta.png'); // Exemplo
 
+const BASE_URL = 'http://10.110.12.47:3000';
 // Habilita LayoutAnimation para Android
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -58,7 +60,7 @@ const groupAndFilterMedicos = (medicos, searchText) => {
 // =========================================================================
 // COMPONENTE CARD EXPANSÍVEL
 // =========================================================================
-const MedicoCard = ({ medico, navigation }) => {
+const MedicoCard = ({medico, navigation }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleExpand = () => {
@@ -113,11 +115,58 @@ const MedicoCard = ({ medico, navigation }) => {
 // =========================================================================
 // TELA PRINCIPAL
 // =========================================================================
-const Medico = ({ navigation, medicos }) => {
+const Medico = ({ navigation}) => {
   const [searchText, setSearchText] = useState('');
+  const [medicos, setMedicos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(null);
 
-  // Use useMemo para recalcular as seções apenas quando 'medicos' ou 'searchText' mudar
+  const buscarMedicos = async () => {
+    setCarregando(true);
+    setErro(null);
+    try {
+      const resposta = await fetch(`${BASE_URL}/medicos`);
+      if (!resposta.ok) {
+        throw new Error(`Erro HTTP ${resposta.status}`);
+      }
+      const dados = await resposta.json();
+      setMedicos(dados);
+    } catch (e) {
+      setErro(e.message);
+    } finally {
+      setCarregando(false); 
+    }
+  };
+
+  useEffect(() => {
+    buscarMedicos();
+  }, []);
+
+   // Use useMemo para recalcular as seções apenas quando 'medicos' ou 'searchText' mudar
   const sections = useMemo(() => groupAndFilterMedicos(medicos, searchText), [medicos, searchText]);
+
+  if (carregando) {
+    return (
+      <View style={styles.centro}>
+        <ActivityIndicator size="large" />
+        <Text style={styles.texto}>Carregando médicos...</Text>
+      </View>
+    );
+  }
+
+  if (erro) {
+    return (
+      <View style={styles.centro}>
+        <Text style={styles.textoErro}>Não foi possível carregar os médicos.</Text>
+        <Text style={styles.texto}>{erro}</Text>
+        <Button title="Tentar novamente" onPress={buscarMedicos} />
+      </View>
+    );
+  }
+
+  
+
+ 
 
   return (
     <View style={styles.container}>
