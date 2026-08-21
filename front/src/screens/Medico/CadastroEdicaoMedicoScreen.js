@@ -1,18 +1,31 @@
 import React from 'react';
 import MedicoForm from '../../components/MedicoForm'; // Ajuste o caminho
 import { View } from 'react-native';
-import { useRoute } from '@react-navigation/native'; // Hook do React Navigation
+
+const BASE_URL = 'http://localhost:3000'; // troque pelo IP da máquina se testar no celular físico via Expo Go
 
 const CadastroEdicaoMedicoScreen = ({ route, navigation }) => {
   // A prop 'medico' virá via route.params
   const { medico } = route.params || {};
 
-  const handleSave = (novoDadosMedico) => {
-    // Aqui é onde você faria a chamada de API ou atualizaria o estado global
-    console.log('Dados a serem salvos/editados:', novoDadosMedico);
-    
-    // Supondo que você use uma função de contexto ou Redux para atualizar o estado
-    // Aqui, apenas chamamos o goBack() após o alerta no MedicoForm.js
+  const handleSave = async (novoDadosMedico) => {
+    const isEdicao = !!medico;
+    const url = isEdicao
+      ? `${BASE_URL}/medicos/${medico.id}`
+      : `${BASE_URL}/medicos`;
+    const method = isEdicao ? 'PUT' : 'POST';
+
+    const resposta = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(novoDadosMedico),
+    });
+
+    if (!resposta.ok) {
+      throw new Error('Não foi possível salvar o médico. Tente novamente.');
+    }
+
+    return resposta.json();
   };
 
   const handleCancel = () => {
