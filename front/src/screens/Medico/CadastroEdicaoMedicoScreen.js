@@ -2,7 +2,7 @@ import React from 'react';
 import MedicoForm from '../../components/MedicoForm'; // Ajuste o caminho
 import { View } from 'react-native';
 
-const BASE_URL = 'http://localhost:3000'; // troque pelo IP da máquina se testar no celular físico via Expo Go
+import BASE_URL from '../../services/api';
 
 const CadastroEdicaoMedicoScreen = ({ route, navigation }) => {
   // A prop 'medico' virá via route.params

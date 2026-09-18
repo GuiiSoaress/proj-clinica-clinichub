@@ -1,5 +1,6 @@
 // src/screens/Medico/Op1Screen.js (Reescrito)
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { 
   View, 
   Text, 
@@ -12,15 +13,14 @@ import {
   UIManager,
   Button,
   Image,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 
 // Ícones (você precisará ter esses arquivos PNG ou usar uma biblioteca de ícones)
-// Assumindo que você tem um ícone de lupa e um triângulo/seta
 const IconeLupa = require('../../../assets/lupa.png'); // Exemplo
 const IconeSeta = require('../../../assets/seta.png'); // Exemplo
-
-const BASE_URL = 'http://10.110.12.47:3000';
+import BASE_URL from '../../services/api';
 // Habilita LayoutAnimation para Android
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -60,7 +60,7 @@ const groupAndFilterMedicos = (medicos, searchText) => {
 // =========================================================================
 // COMPONENTE CARD EXPANSÍVEL
 // =========================================================================
-const MedicoCard = ({medico, navigation }) => {
+const MedicoCard = ({medico, navigation, onExcluir }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleExpand = () => {
@@ -98,12 +98,12 @@ const MedicoCard = ({medico, navigation }) => {
           <View style={cardStyles.actionButtons}>
             <Button
               title="Editar"
-              onPress={() => navigation.navigate('MedicoForm', medico)} // Deveria ser uma tela de edição
+              onPress={() => navigation.navigate('MedicoForm', { medico })} 
             />
             <Button
-              title="Desativar Perfil"
+              title="Excluir"
               color="red"
-              onPress={() => navigation.navigate('EmConstrucao')} 
+              onPress={onExcluir} 
             />
           </View>
         </View>
@@ -138,9 +138,47 @@ const Medico = ({ navigation}) => {
     }
   };
 
-  useEffect(() => {
-    buscarMedicos();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      buscarMedicos();
+    }, [])
+  );
+
+  const handleExcluir = (id, nome) => {
+    if (Platform.OS === 'web') {
+      const confirmou = window.confirm(`Tem certeza que deseja excluir o(a) Dr(a). ${nome}?`);
+      if (confirmou) {
+        executarExclusao(id);
+      }
+    } else {
+      Alert.alert(
+        'Excluir Médico',
+        `Tem certeza que deseja excluir o(a) Dr(a). ${nome}?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Excluir',
+            style: 'destructive',
+            onPress: () => executarExclusao(id)
+          }
+        ]
+      );
+    }
+  };
+
+  const executarExclusao = async (id) => {
+    try {
+      const resposta = await fetch(`${BASE_URL}/medicos/${id}`, { method: 'DELETE' });
+      if (!resposta.ok) throw new Error('Erro ao excluir médico.');
+      buscarMedicos(); // Recarrega a lista
+    } catch (e) {
+      if (Platform.OS === 'web') {
+        window.alert(`Erro: ${e.message}`);
+      } else {
+        Alert.alert('Erro', e.message);
+      }
+    }
+  };
 
    // Use useMemo para recalcular as seções apenas quando 'medicos' ou 'searchText' mudar
   const sections = useMemo(() => groupAndFilterMedicos(medicos, searchText), [medicos, searchText]);
@@ -187,7 +225,7 @@ const Medico = ({ navigation}) => {
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => <MedicoCard medico={item} navigation={navigation} />}
+          renderItem={({ item }) => <MedicoCard medico={item} navigation={navigation} onExcluir={() => handleExcluir(item.id, item.nome)} />}
           renderSectionHeader={({ section: { title } }) => (
             <Text style={styles.sectionHeader}>{title}</Text>
           )}
@@ -201,7 +239,7 @@ const Medico = ({ navigation}) => {
       <View style={styles.fixedButtonContainer}>
         <Button
           title="Cadastrar Novo Perfil"
-          onPress={() => navigation.navigate('MedicoForm')} // Exemplo
+          onPress={() => navigation.navigate('MedicoForm', { medico: null })}
         />
       </View>
     </View>

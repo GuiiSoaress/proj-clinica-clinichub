@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Button } from 'react-native';
 
-const BASE_URL = 'http://10.110.12.81:3000';
+import BASE_URL from '../../services/api';
 
 
 const Paciente = () => {

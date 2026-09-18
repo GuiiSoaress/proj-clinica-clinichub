@@ -7,7 +7,9 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Alert,
-  Platform} from 'react-native';
+  Platform,
+  KeyboardAvoidingView
+} from 'react-native';
 
 import { Picker } from '@react-native-picker/picker';
 
@@ -146,6 +148,10 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
 
   return (
     <View style={styles.container}>
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -290,6 +296,7 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
           </View>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* BOTÕES FIXOS NA PARTE INFERIOR */}
       <View style={styles.buttonContainer}>
@@ -330,7 +337,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 110, // Espaço para os botões fixos
+    flexGrow: 1,
   },
   title: {
     fontSize: 22,
@@ -360,10 +367,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   buttonContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: 14,
     backgroundColor: '#fff',
     borderTopWidth: 1,
