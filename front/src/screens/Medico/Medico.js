@@ -16,11 +16,9 @@ import {
 } from 'react-native';
 
 // Ícones (você precisará ter esses arquivos PNG ou usar uma biblioteca de ícones)
-// Assumindo que você tem um ícone de lupa e um triângulo/seta
 const IconeLupa = require('../../../assets/lupa.png'); // Exemplo
 const IconeSeta = require('../../../assets/seta.png'); // Exemplo
-
-const BASE_URL = 'http://10.110.12.47:3000';
+import BASE_URL from '../../services/api';
 // Habilita LayoutAnimation para Android
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
