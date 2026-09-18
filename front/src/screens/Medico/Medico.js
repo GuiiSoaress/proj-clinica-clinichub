@@ -98,7 +98,7 @@ const MedicoCard = ({medico, navigation, onExcluir }) => {
           <View style={cardStyles.actionButtons}>
             <Button
               title="Editar"
-              onPress={() => navigation.navigate('MedicoForm', medico)} // Deveria ser uma tela de edição
+              onPress={() => navigation.navigate('MedicoForm', { medico })} 
             />
             <Button
               title="Excluir"
@@ -145,26 +145,39 @@ const Medico = ({ navigation}) => {
   );
 
   const handleExcluir = (id, nome) => {
-    Alert.alert(
-      'Excluir Médico',
-      `Tem certeza que deseja excluir o(a) Dr(a). ${nome}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const resposta = await fetch(`${BASE_URL}/medicos/${id}`, { method: 'DELETE' });
-              if (!resposta.ok) throw new Error('Erro ao excluir médico.');
-              buscarMedicos(); // Recarrega a lista
-            } catch (e) {
-              Alert.alert('Erro', e.message);
-            }
+    if (Platform.OS === 'web') {
+      const confirmou = window.confirm(`Tem certeza que deseja excluir o(a) Dr(a). ${nome}?`);
+      if (confirmou) {
+        executarExclusao(id);
+      }
+    } else {
+      Alert.alert(
+        'Excluir Médico',
+        `Tem certeza que deseja excluir o(a) Dr(a). ${nome}?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Excluir',
+            style: 'destructive',
+            onPress: () => executarExclusao(id)
           }
-        }
-      ]
-    );
+        ]
+      );
+    }
+  };
+
+  const executarExclusao = async (id) => {
+    try {
+      const resposta = await fetch(`${BASE_URL}/medicos/${id}`, { method: 'DELETE' });
+      if (!resposta.ok) throw new Error('Erro ao excluir médico.');
+      buscarMedicos(); // Recarrega a lista
+    } catch (e) {
+      if (Platform.OS === 'web') {
+        window.alert(`Erro: ${e.message}`);
+      } else {
+        Alert.alert('Erro', e.message);
+      }
+    }
   };
 
    // Use useMemo para recalcular as seções apenas quando 'medicos' ou 'searchText' mudar
@@ -226,7 +239,7 @@ const Medico = ({ navigation}) => {
       <View style={styles.fixedButtonContainer}>
         <Button
           title="Cadastrar Novo Perfil"
-          onPress={() => navigation.navigate('MedicoForm')} // Exemplo
+          onPress={() => navigation.navigate('MedicoForm', { medico: null })}
         />
       </View>
     </View>
