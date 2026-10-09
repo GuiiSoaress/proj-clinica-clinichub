@@ -23,7 +23,7 @@ function Atalho({ titulo, icone, onPress, destaque, escuro }) {
 }
 
 export default function Inicio({ navigation }) {
-  const { consultas } = useApp();
+  const { consultas, usuario } = useApp();
   const proximas = consultas
     .filter((c) => c.status === 'proxima')
     .sort((a, b) => a.data - b.data)
@@ -34,7 +34,7 @@ export default function Inicio({ navigation }) {
       <View style={styles.header}>
         <View>
           <Text style={styles.bemVindo}>Bem-vindo de volta</Text>
-          <Text style={styles.ola}>Olá, Paciente</Text>
+          <Text style={styles.ola}>Olá, {usuario ? usuario.nome.split(' ')[0] : 'Paciente'}</Text>
         </View>
         <View style={styles.logo}>
           <Icon name="plus" size={26} color={colors.coral} />

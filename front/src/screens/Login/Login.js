@@ -1,18 +1,42 @@
-// src/screens/Login/Login.js
 import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, ScrollView, StyleSheet, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from '../../components/Icons';
 import { Botao } from '../../components/Layout';
 import { colors, fonts } from '../../theme';
+import { useApp } from '../../context/AppContext';
 
-export default function Login({ navigation }) {
+export default function Login() {
   const insets = useSafeAreaInsets();
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
+  const { login } = useApp();
+  const [email, setEmail] = useState('recepcao@clinica.com');
+  const [senha, setSenha] = useState('clinica123');
+  const [entrando, setEntrando] = useState(false);
+  const [erroLogin, setErroLogin] = useState(null);
 
-  // Ainda não há autenticação real: ambos os caminhos entram no app.
-  const entrar = () => navigation.replace('Inicio');
+  const entrar = async () => {
+    setErroLogin(null); // Limpa erros antigos ao tentar novamente
+    
+    // Validação local: impede requisições inúteis se os campos estiverem em branco
+    if (!email.trim() || !senha) {
+      setErroLogin('Preencha e-mail e senha.');
+      return;
+    }
+
+    setEntrando(true); // Aciona o indicador de carregamento
+    try {
+      // Chama a função "login" do nosso Contexto (que faz o fetch e salva o token)
+      await login(email, senha);
+      
+      // OBS: Não precisamos de "navigation.replace('Inicio')" aqui,
+      // porque ao mudar o "token" lá no Contexto, o RootNavigator do App.js
+      // vai automaticamente trocar a tela de Login pela tela de Inicio!
+    } catch (e) {
+      setErroLogin(e.message || 'Erro ao entrar.');
+    } finally {
+      setEntrando(false); // Desliga o carregamento quer tenha dado certo ou errado
+    }
+  };
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -28,6 +52,8 @@ export default function Login({ navigation }) {
         <View style={styles.card}>
           <Text style={styles.titulo}>Entrar na sua conta</Text>
 
+          {erroLogin && <Text style={styles.erro}>{erroLogin}</Text>}
+
           <View style={styles.campo}>
             <Text style={styles.rotulo}>E-mail</Text>
             <TextInput
@@ -39,6 +65,7 @@ export default function Login({ navigation }) {
               autoCapitalize="none"
               autoCorrect={false}
               style={styles.input}
+              editable={!entrando}
             />
           </View>
 
@@ -51,12 +78,18 @@ export default function Login({ navigation }) {
               placeholderTextColor={colors.muted2}
               secureTextEntry
               style={styles.input}
+              editable={!entrando}
             />
           </View>
 
-          <Botao titulo="Entrar" onPress={entrar} style={{ marginTop: 6 }} />
+          <Botao 
+            titulo={entrando ? 'Entrando...' : 'Entrar'} 
+            onPress={entrar} 
+            style={{ marginTop: 6, opacity: entrando ? 0.7 : 1 }} 
+            disabled={entrando} 
+          />
 
-          <Pressable accessibilityRole="button" onPress={entrar} style={styles.biometria}>
+          <Pressable accessibilityRole="button" onPress={() => {}} style={styles.biometria} disabled={entrando}>
             <Icon name="fingerprint" size={22} color={colors.green} />
             <Text style={styles.biometriaTexto}>Entrar com biometria</Text>
           </Pressable>
@@ -80,4 +113,7 @@ const styles = StyleSheet.create({
   input: { height: 52, borderWidth: 1.5, borderColor: colors.border, borderRadius: 14, backgroundColor: colors.bg, paddingHorizontal: 16, fontSize: 16, fontFamily: fonts.body, color: colors.ink },
   biometria: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   biometriaTexto: { fontFamily: fonts.medium, fontSize: 15, color: colors.green },
+  erro: { color: colors.coral, fontFamily: fonts.medium, fontSize: 14, marginBottom: 8 },
 });
+
+
