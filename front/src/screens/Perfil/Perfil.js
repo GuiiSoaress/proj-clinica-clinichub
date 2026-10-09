@@ -6,6 +6,7 @@ import Icon from '../../components/Icons';
 import { Screen, iniciais } from '../../components/Layout';
 import { PACIENTE } from '../../data/mock';
 import { colors, fonts } from '../../theme';
+import { useApp } from '../../context/AppContext';
 
 function Item({ titulo, onPress }) {
   return (
@@ -18,8 +19,14 @@ function Item({ titulo, onPress }) {
 
 export default function Perfil({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { logout, usuario } = useApp();
   const emBreve = (t) => () => Alert.alert(t, 'Em breve.');
-  const sair = () => navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  const sair = async () => {
+    await logout();
+  };
+
+  const nomeExibicao = usuario ? usuario.nome : PACIENTE.nome;
+  const papelExibicao = usuario && usuario.perfil ? usuario.perfil : PACIENTE.papel;
 
   return (
     <Screen navigation={navigation} tab="Perfil" contentStyle={{ paddingTop: 0 }}>
@@ -31,13 +38,13 @@ export default function Perfil({ navigation }) {
           </View>
         </View>
         <View style={styles.avatar}>
-          <Text style={styles.avatarTexto}>{iniciais(PACIENTE.nome)}</Text>
+          <Text style={styles.avatarTexto}>{iniciais(nomeExibicao)}</Text>
         </View>
       </View>
 
       <View style={styles.identidade}>
-        <Text style={styles.nome}>{PACIENTE.nome}</Text>
-        <Text style={styles.papel}>{PACIENTE.papel}</Text>
+        <Text style={styles.nome}>{nomeExibicao}</Text>
+        <Text style={styles.papel}>{papelExibicao}</Text>
       </View>
 
       <View style={styles.lista}>
