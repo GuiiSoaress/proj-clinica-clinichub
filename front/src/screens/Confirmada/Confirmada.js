@@ -68,6 +68,36 @@ export default function Confirmada({ navigation, route }) {
         <Linha rotulo="Horário" valor={consulta.hora} />
         <Linha rotulo="Unidade" valor={consulta.unidade} ultima />
       </View>
+
+      {/* Sinais vitais (Aula 7): só faz sentido antes da consulta. */}
+      {consulta.status === 'proxima' && (
+        <View style={styles.card}>
+          <View style={styles.vitaisTopo}>
+            <View style={styles.vitaisIcone}>
+              <Icon name="heart" size={22} color={colors.coral} filled={!!consulta.sinaisVitais} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.vitaisTitulo}>Sinais vitais</Text>
+              {consulta.sinaisVitais ? (
+                <Text style={styles.vitaisTexto}>
+                  Frequência cardíaca: <Text style={styles.vitaisValor}>{consulta.sinaisVitais.frequenciaMedia} bpm</Text>
+                  {consulta.sinaisVitais.origem === 'manual'
+                    ? ' (digitado manualmente)'
+                    : ` (média de ${consulta.sinaisVitais.quantidadeLeituras} leituras)`}
+                </Text>
+              ) : (
+                <Text style={styles.vitaisTexto}>Importe a frequência cardíaca de um aparelho Bluetooth antes da consulta.</Text>
+              )}
+            </View>
+          </View>
+          <Botao
+            titulo={consulta.sinaisVitais ? 'Medir novamente' : 'Importar sinais vitais'}
+            variante={consulta.sinaisVitais ? 'branco' : 'primario'}
+            onPress={() => navigation.navigate('SinaisVitais', { consultaId: consulta.id })}
+            style={[{ marginVertical: 12 }, consulta.sinaisVitais && styles.botaoContorno]}
+          />
+        </View>
+      )}
     </Screen>
   );
 }
@@ -82,4 +112,10 @@ const styles = StyleSheet.create({
   linhaBorda: { borderBottomWidth: 1, borderBottomColor: colors.line },
   linhaRotulo: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
   linhaValor: { fontFamily: fonts.bold, fontSize: 15, color: colors.ink, flexShrink: 1, textAlign: 'right' },
+  vitaisTopo: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 12 },
+  vitaisIcone: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.dangerBg, alignItems: 'center', justifyContent: 'center' },
+  vitaisTitulo: { fontFamily: fonts.bold, fontSize: 16, color: colors.ink },
+  vitaisTexto: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2, lineHeight: 18 },
+  vitaisValor: { fontFamily: fonts.bold, color: colors.ink },
+  botaoContorno: { borderWidth: 1, borderColor: colors.border },
 });

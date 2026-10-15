@@ -43,7 +43,8 @@ alguns destes itens.
 - [ ] Cadastro de foto de perfil (paciente e médico) via câmera do dispositivo 
 - [ ] Login com biometria implementado para médico/recepção 
 - [ ] Geolocalização (GPS) com cálculo de distância/tempo até a clínica 
-- [ ] Importação de sinais vitais de um periférico via Bluetooth antes da consulta
+- [x] Importação de sinais vitais de um periférico via Bluetooth antes da consulta
+      (modo simulado; modo real pronto, exige development build: ver `Docs/004-bluetooth-modo-real.md`)
 - [ ] Implementação das interfaces de listagem (leitura) para pacientes, médicos,
       especialidades e horários, consumindo a API RESTful
 - [ ] Operações de escrita (cadastro/edição/exclusão) para pacientes, médicos,
@@ -128,6 +129,17 @@ npx expo start
 Escaneie o QR Code com o app Expo Go, ou pressione `a`/`i` no terminal para abrir em um
 emulador Android/iOS.
 
+### Bluetooth (sinais vitais)
+
+A importação de sinais vitais usa `react-native-ble-plx`, que **não funciona no Expo Go**
+(precisa de código nativo). Por isso o service `front/src/services/bluetooth.js` tem dois modos,
+escolhidos pela constante `MODO_SIMULADO`:
+
+- `true` (padrão): periférico simulado, roda no Expo Go.
+- `false`: Bluetooth real, exige **development build** (`npx expo run:android` ou EAS Build).
+
+Passo a passo para trocar de modo e testes de falha: [Docs/004-bluetooth-modo-real.md](Docs/004-bluetooth-modo-real.md).
+
 ## Permissões necessárias
 
 O aplicativo solicita acesso aos seguintes recursos do dispositivo. Documentem, para cada
@@ -138,7 +150,7 @@ um, quando a permissão é pedida e o que acontece se o usuário negar:
 | Câmera | [a preencher — Aula 1] | [a preencher] |
 | Biometria | [a preencher — Aula 6] | [a preencher] |
 | Localização (GPS) | [a preencher — Aula 6] | [a preencher] |
-| Bluetooth | [a preencher — Aula 7] | [a preencher] |
+| Bluetooth | Ao tocar em "Procurar aparelhos" na tela Sinais vitais (só no modo real). Android 12+: `BLUETOOTH_SCAN`/`BLUETOOTH_CONNECT`; Android ≤ 11: localização precisa | A tela avisa que não há permissão, explica como liberar nas configurações e oferece "Digitar os valores manualmente" |
 | Notificações | [a preencher — Aulas 8-9] | [a preencher] |
 
 ## Testes

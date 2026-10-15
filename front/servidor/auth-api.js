@@ -12,6 +12,8 @@
 //   POST /login      { email, senha }  -> 200 { token, usuario } | 401
 //   GET  /medicos    (Authorization: Bearer <token>) -> 200 [...] | 401
 //   GET  /perfil     (Authorization: Bearer <token>) -> 200 {...} | 401
+//   POST /sinais-vitais (Authorization: Bearer <token>)
+//        { consultaId, frequenciaMedia, quantidadeLeituras, origem } -> 201 | 400 | 401
 //
 // ATENCAO - este servidor e didatico, NAO e um modelo de producao:
 //   - as senhas estao em texto puro no codigo (o certo e guardar um hash,
@@ -67,6 +69,21 @@ function lerCorpo(req) {
   });
 }
 
+// "Prontuário" em memória: registros de sinais vitais (Aula 7).
+const PRONTUARIO = [];
+
+// Igual a lerCorpo, mas sem imprimir o conteúdo: usado em rotas que
+// recebem dado de saúde.
+function lerCorpoSemLog(req) {
+  return new Promise((resolve) => {
+    let dados = '';
+    req.on('data', (pedaco) => { dados += pedaco; });
+    req.on('end', () => {
+      try { resolve(JSON.parse(dados || '{}')); } catch (e) { resolve(null); }
+    });
+  });
+}
+
 function usuarioDoToken(req) {
   const cabecalho = req.headers['authorization'] || '';
   const token = cabecalho.startsWith('Bearer ') ? cabecalho.slice(7) : null;
@@ -114,6 +131,35 @@ const servidor = http.createServer(async (req, res) => {
       return json(res, 200, { id: usuario.id, nome: usuario.nome, perfil: usuario.perfil });
     }
     return json(res, 200, MEDICOS);
+  }
+
+  // ------------------------------------------------- SINAIS VITAIS (Aula 7)
+  // Recebe a média de frequência cardíaca importada via Bluetooth (ou
+  // digitada manualmente) e grava no "prontuário" em memória.
+  if (req.method === 'POST' && req.url === '/sinais-vitais') {
+    const usuario = usuarioDoToken(req);
+    if (!usuario) {
+      return json(res, 401, { erro: 'Token ausente ou inválido.' });
+    }
+    // Lido sem o log de lerCorpo: sinal vital é dado de saúde e não vai
+    // para o console.
+    const corpo = await lerCorpoSemLog(req);
+    const bpm = Number(corpo?.frequenciaMedia);
+    if (!corpo || !corpo.consultaId || !Number.isFinite(bpm) || bpm < 20 || bpm > 250) {
+      return json(res, 400, { erro: 'Informe a consulta e uma frequência cardíaca entre 20 e 250 bpm.' });
+    }
+    const registro = {
+      id: PRONTUARIO.length + 1,
+      consultaId: corpo.consultaId,
+      frequenciaMedia: Math.round(bpm),
+      quantidadeLeituras: Number(corpo.quantidadeLeituras) || 1,
+      origem: corpo.origem === 'manual' ? 'manual' : 'bluetooth',
+      registradoPor: usuario.id,
+      registradoEm: new Date().toISOString(),
+    };
+    PRONTUARIO.push(registro);
+    console.log(`  sinal vital #${registro.id} gravado (consulta ${registro.consultaId}, origem ${registro.origem})`);
+    return json(res, 201, registro);
   }
 
   json(res, 404, { erro: 'Rota não encontrada.' });

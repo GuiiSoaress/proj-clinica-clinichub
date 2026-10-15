@@ -18,6 +18,7 @@ import Confirmar from './src/screens/Confirmar/Confirmar';
 import Confirmada from './src/screens/Confirmada/Confirmada';
 import Consultas from './src/screens/Consultas/Consultas';
 import Perfil from './src/screens/Perfil/Perfil';
+import SinaisVitais from './src/screens/Consulta/SinaisVitais';
 
 const Stack = createStackNavigator();
 
@@ -51,6 +52,7 @@ function RootNavigator() {
             <Stack.Screen name="Confirmada" component={Confirmada} />
             <Stack.Screen name="Consultas" component={Consultas} />
             <Stack.Screen name="Perfil" component={Perfil} />
+            <Stack.Screen name="SinaisVitais" component={SinaisVitais} />
           </>
         ) : (
           // === ROTAS PÚBLICAS (Usuário Deslogado) ===

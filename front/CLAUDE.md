@@ -11,27 +11,34 @@ Expo SDK 54, React Native 0.81, React 19, `@react-navigation/stack`, `react-nati
 
 ## Arquitetura
 
-- [App.js](App.js): carrega as fontes, envolve tudo em `SafeAreaProvider` e `AppProvider`, e registra as 7 telas num único `Stack.Navigator` sem header. Rota inicial: `Login`.
-- `src/screens/<Tela>/<Tela>.js`: uma pasta por tela.
-  - `Login` → `Inicio` (via `replace`).
+- [App.js](App.js): carrega as fontes, envolve tudo em `SafeAreaProvider` e `AppProvider`. Gerencia navegação condicional por token:
+  - Públicas: `Login`.
+  - Privadas: `Inicio`, `Agendar`, `Confirmar`, `Confirmada`, `Consultas`, `Perfil`, `SinaisVitais`.
+- `src/screens/<Tela>/<Tela>.js`:
+  - `Login` → autentica via API e salva token no SecureStore.
   - `Inicio`, `Agendar` e `Perfil` são as abas da barra inferior.
   - Fluxo de agendamento: `Agendar` → `Confirmar` → `Confirmada` (recebe `route.params.id`).
   - `Consultas` (Minhas Consultas) é aberta pelo Início/Perfil; os cards levam a `Confirmada`.
-  - `Perfil` → "Sair" faz `navigation.reset` para `Login`.
+  - `Confirmada`: detalhes da consulta; para consultas `proxima`, exibe o card de **Sinais vitais** e botão para importar ou medir novamente.
+  - `Consulta/SinaisVitais.js`: tela de leitura de frequência cardíaca via BLE (importa média para o prontuário via `post('/sinais-vitais')` ou permite digitação manual).
+  - `Perfil` → "Sair" limpa a sessão e desloga.
 - `src/components/`:
   - `Layout.js`: `Screen` (rolagem, safe area, `tab` para a barra inferior, `footer` para botão fixo), `TabBar`, `Botao` (variantes `primario`, `branco`, `perigo`), `MedicoAvatar`, `iniciais`.
-  - `Icons.js`: ícones SVG (`<Icon name=... />`) e `MiniMap`.
+  - `Icons.js`: ícones SVG (`<Icon name=... />`, incluindo `heart`) e `MiniMap`.
   - `ConsultaCard.js`: card de consulta (variantes `home` e `lista`).
-- `src/context/AppContext.js`: estado global (`consultas`, `medicoSelecionado`, `agendar`, `cancelar`) e helpers de data (`MESES`, `MESES_ABREV`, `pad`, `formatarData`). Estado só em memória, sem persistência.
-- `src/data/mock.js`: especialidades, médicos, horários, unidade, paciente e consultas iniciais. É a única fonte de dados das telas.
-- `src/theme.js`: `colors`, `fonts` (nomes das famílias carregadas) e sombra da barra. Use sempre estes tokens em vez de valores soltos.
-- `src/services/api.js`: `BASE_URL` (`http://localhost:3000`). Hoje sem uso; em celular físico troque `localhost` pelo IP da máquina.
-- `mockup/db_clinica.json`: base para `json-server` (`medicos`, `pacientes`), ainda não ligada ao app.
+- `src/context/AppContext.js`: estado global (`consultas`, `medicoSelecionado`, `usuario`, `token`, `agendar`, `cancelar`, `registrarSinaisVitais`, `login`, `logout`) e helpers de data.
+- `src/services/`:
+  - `api.js`: `BASE_URL` (`http://localhost:3001`), `apiFetch` (com Bearer token) e helper `post(endpoint, corpo)`.
+  - `sessao.js`: persistência da sessão no `expo-secure-store`.
+  - `bluetooth.js`: interface isolada para BLE (`procurar`, `pararBusca`, `conectar`, `monitorarFrequencia`, `desconectar`). Controlado por `MODO_SIMULADO` e `FALHAS_SIMULADAS`.
+- `servidor/auth-api.js`: servidor HTTP mock na porta 3001 com autenticação (`POST /login`), perfil, médicos e prontuário em memória (`POST /sinais-vitais`).
+- `src/data/mock.js`: especialidades, médicos, horários, unidade, paciente e consultas iniciais.
+- `src/theme.js`: `colors`, `fonts` e sombra da barra.
 
 ## Modelo de dados (em memória)
 
-Consulta: `{ id, medico, especialidade, data: Date, hora: 'HH:mm', unidade, status: 'proxima' | 'concluida' | 'cancelada' }`.
-Médico: `{ id, nome, especialidade, crm }`. O status não é derivado da data; só muda via `cancelar`.
+Consulta: `{ id, medico, especialidade, data: Date, hora: 'HH:mm', unidade, status: 'proxima' | 'concluida' | 'cancelada', sinaisVitais?: { frequenciaMedia, quantidadeLeituras, origem, registradoEm } }`.
+Médico: `{ id, nome, especialidade, crm }`.
 
 ## Design
 
@@ -39,9 +46,10 @@ Origem: protótipo "ClinicHub — Telas do Paciente" (Figma em `../Docs/Link Fig
 
 ## Pendências conhecidas
 
-- Login e biometria não autenticam de fato; "Exames", "Dados pessoais" e "Notificações" mostram só um aviso.
+- Biometria não autentica de fato no Login; "Exames", "Dados pessoais" e "Notificações" mostram aviso.
 - Distância da clínica é texto fixo (sem GPS); mini mapa é ilustrativo.
-- Sem telas de médico/recepção (o CRUD antigo de médicos foi removido; consulte o histórico do Git).
+- Bluetooth roda em modo simulado no Expo Go; modo real exige development build nativo (guia em `../Docs/004-bluetooth-modo-real.md`).
+- Sem telas de médico/recepção.
 
 ## Ao adicionar telas
 
