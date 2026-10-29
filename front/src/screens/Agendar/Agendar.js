@@ -4,24 +4,24 @@ import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import Icon from '../../components/Icons';
 import { Screen, Botao, MedicoAvatar } from '../../components/Layout';
 import { useApp } from '../../context/AppContext';
-import { ESPECIALIDADES, MEDICOS } from '../../data/mock';
+import { ESPECIALIDADES } from '../../data/mock';
 import { colors, fonts } from '../../theme';
 
 const normalizar = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 export default function Agendar({ navigation }) {
-  const { medicoSelecionado, setMedicoSelecionado } = useApp();
+  const { medicos: listaMedicos, medicoSelecionado, setMedicoSelecionado } = useApp();
   const [busca, setBusca] = useState('');
   const [especialidade, setEspecialidade] = useState('Cardiologia');
 
   const medicos = useMemo(() => {
     const q = normalizar(busca.trim());
-    return MEDICOS.filter((m) => {
+    return listaMedicos.filter((m) => {
       if (especialidade && m.especialidade !== especialidade) return false;
       if (!q) return true;
       return normalizar(m.nome).includes(q) || normalizar(m.especialidade).includes(q);
     });
-  }, [busca, especialidade]);
+  }, [listaMedicos, busca, especialidade]);
 
   // Só considera selecionado quem ainda está na lista filtrada.
   const selecionado = medicos.find((m) => m.id === medicoSelecionado?.id) || null;
@@ -74,7 +74,17 @@ export default function Agendar({ navigation }) {
       </View>
 
       <View style={styles.secao}>
-        <Text style={styles.h2}>Médico</Text>
+        <View style={styles.secaoTopo}>
+          <Text style={styles.h2}>Médico</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => navigation.navigate('CadastroEdicaoMedico')}
+            style={styles.novoMedicoBtn}
+          >
+            <Text style={styles.novoMedicoTexto}>+ Novo médico</Text>
+          </Pressable>
+        </View>
+
         <View style={{ gap: 10 }}>
           {medicos.length === 0 ? (
             <Text style={styles.vazio}>Nenhum médico encontrado.</Text>
@@ -89,11 +99,19 @@ export default function Agendar({ navigation }) {
                   onPress={() => setMedicoSelecionado(m)}
                   style={[styles.medico, ativo && styles.medicoAtivo]}
                 >
-                  <MedicoAvatar nome={m.nome} />
+                  <MedicoAvatar nome={m.nome} fotoUri={m.fotoUri} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.medicoNome}>{m.nome}</Text>
                     <Text style={styles.medicoSub}>{m.especialidade} - CRM {m.crm}</Text>
                   </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Editar ${m.nome}`}
+                    onPress={() => navigation.navigate('CadastroEdicaoMedico', { medico: m })}
+                    style={styles.editarBtn}
+                  >
+                    <Text style={styles.editarTexto}>Editar</Text>
+                  </Pressable>
                   {ativo ? <Icon name="checkCircle" size={24} color={colors.coral} /> : null}
                 </Pressable>
               );
@@ -117,10 +135,15 @@ const styles = StyleSheet.create({
   chipTexto: { fontFamily: fonts.medium, fontSize: 14, color: colors.ink },
   chipTextoAtivo: { fontFamily: fonts.bold, color: colors.white },
   secao: { paddingHorizontal: 24, paddingTop: 24 },
-  h2: { fontFamily: fonts.titleSemi, fontSize: 20, color: colors.ink, marginBottom: 12 },
+  secaoTopo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  h2: { fontFamily: fonts.titleSemi, fontSize: 20, color: colors.ink },
+  novoMedicoBtn: { minHeight: 36, paddingHorizontal: 12, borderRadius: 12, backgroundColor: colors.mint, justifyContent: 'center' },
+  novoMedicoTexto: { fontFamily: fonts.bold, fontSize: 13, color: colors.green },
   medico: { backgroundColor: colors.white, borderRadius: 20, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 2, borderColor: 'transparent' },
   medicoAtivo: { borderColor: colors.coral },
   medicoNome: { fontFamily: fonts.bold, fontSize: 16, color: colors.ink },
   medicoSub: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2 },
+  editarBtn: { minHeight: 36, paddingHorizontal: 10, borderRadius: 10, backgroundColor: colors.bg, justifyContent: 'center' },
+  editarTexto: { fontFamily: fonts.bold, fontSize: 12, color: colors.green },
   vazio: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
 });

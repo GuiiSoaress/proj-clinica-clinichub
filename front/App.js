@@ -12,6 +12,7 @@ import { Fraunces_600SemiBold, Fraunces_700Bold } from '@expo-google-fonts/fraun
 import { AppProvider, useApp } from './src/context/AppContext';
 import { colors } from './src/theme';
 import Login from './src/screens/Login/Login';
+import LoginBiometrico from './src/screens/Login/LoginBiometrico';
 import Inicio from './src/screens/Inicio/Inicio';
 import Agendar from './src/screens/Agendar/Agendar';
 import Confirmar from './src/screens/Confirmar/Confirmar';
@@ -19,6 +20,8 @@ import Confirmada from './src/screens/Confirmada/Confirmada';
 import Consultas from './src/screens/Consultas/Consultas';
 import Perfil from './src/screens/Perfil/Perfil';
 import SinaisVitais from './src/screens/Consulta/SinaisVitais';
+import ComoChegar from './src/screens/Clinica/ComoChegar';
+import CadastroEdicaoMedicoScreen from './src/screens/Medico/CadastroEdicaoMedicoScreen';
 
 const Stack = createStackNavigator();
 
@@ -53,10 +56,15 @@ function RootNavigator() {
             <Stack.Screen name="Consultas" component={Consultas} />
             <Stack.Screen name="Perfil" component={Perfil} />
             <Stack.Screen name="SinaisVitais" component={SinaisVitais} />
+            <Stack.Screen name="ComoChegar" component={ComoChegar} />
+            <Stack.Screen name="CadastroEdicaoMedico" component={CadastroEdicaoMedicoScreen} />
           </>
         ) : (
-          // === ROTAS PÚBLICAS (Usuário Deslogado) ===
-          <Stack.Screen name="Login" component={Login} />
+          // === ROTAS PÚBLICAS (Usuário Deslogado ou Sessão Trancada) ===
+          <>
+            <Stack.Screen name="LoginBiometrico" component={LoginBiometrico} />
+            <Stack.Screen name="Login" component={Login} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

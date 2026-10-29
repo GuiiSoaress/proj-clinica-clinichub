@@ -45,10 +45,14 @@ Os três ADRs são do squad "Clinic Hub", datados de 03/09/2026, com situação 
 ## Estado atual
 
 - **Concluído:** projeto configurado e versionado no Git; as 7 telas do paciente (Login, Início, Agendar, Confirmar, Confirmada, Minhas Consultas, Perfil) implementadas a partir do protótipo; login com token via `front/servidor/auth-api.js` (porta 3001, `npm run auth-api`) e sessão no `expo-secure-store`.
+- **Periféricos (Aula 6):**
+  - **Câmera (`expo-image-picker`):** foto de perfil no cadastro/edição de médico (`MedicoForm.js` / `CadastroEdicaoMedicoScreen.js`) e no avatar do paciente (`Perfil.js` via `FotoPerfilCampo.js`).
+  - **Biometria (`expo-local-authentication`):** tela `LoginBiometrico.js` que destranca o token já salvo no `SecureStore` (com fallback sempre visível para e-mail e senha).
+  - **GPS (`expo-location`):** service isolado `front/src/services/localizacao.js` (Haversine + `Accuracy.Balanced` + erro `PermissaoNegada`) e tela `ComoChegar.js`.
 - **Bluetooth (Aula 7):** tela `SinaisVitais` (aberta pelo card "Sinais vitais" da `Confirmada`, só em consultas `proxima`) + service `front/src/services/bluetooth.js` com modo simulado (ativo) e real (`react-native-ble-plx`, exige development build). A média vai para `POST /sinais-vitais` da auth-api. Guia de troca de modo: `Docs/004-bluetooth-modo-real.md`.
-- **Em mock:** consultas, médicos e horários vêm de `front/src/data/mock.js` e do estado local em `front/src/context/AppContext.js`.
-- **Não iniciado:** CRUD na API, câmera, biometria real, GPS, push, SMS, mapas, background, telas de médico/recepção.
-- **Legado:** `front/mockup/db_clinica.json` (base do `json-server`, com `medicos` e `pacientes`). As telas e o CRUD de médicos anteriores foram removidos; estão no histórico do Git.
+- **Em mock:** consultas, médicos iniciais e horários vêm de `front/src/data/mock.js` e do estado local em `front/src/context/AppContext.js`.
+- **Não iniciado:** CRUD completo na API REST, push, SMS, mapas, background, agenda completa do médico.
+- **Legado:** `front/mockup/db_clinica.json` (base do `json-server`, com `medicos` e `pacientes`).
 
 ## Comandos
 
@@ -75,10 +79,7 @@ Não há testes nem linter configurados. Verificação rápida de que tudo compi
 ## Próximos passos prováveis
 
 1. Subir uma API (ou `json-server` sobre `db_clinica.json`) e trocar `mock.js` por chamadas via `services/api.js`.
-2. Autenticação real e biometria no Login.
-3. Push (ADR 002, Aula 9): gerar development build com EAS Build e coletar o token por paciente.
-4. Mapas (ADR 001, Aula 12): chave do Google Maps + `react-native-maps` na tela Confirmar, em módulo isolado.
-5. SMS (ADR 003, Aula 13): gateway Twilio/Zenvia acionado pelo backend.
-6. Foto de perfil (câmera), GPS para a distância até a clínica.
-7. Preencher o README final e atualizar esta documentação.
-
+2. Push (ADR 002, Aula 9): gerar development build com EAS Build e coletar o token por paciente.
+3. Mapas (ADR 001, Aula 12): chave do Google Maps + `react-native-maps` na tela Confirmar/ComoChegar, em módulo isolado.
+4. SMS (ADR 003, Aula 13): gateway Twilio/Zenvia acionado pelo backend.
+5. Preencher o README final e atualizar esta documentação.

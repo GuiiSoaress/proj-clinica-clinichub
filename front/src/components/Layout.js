@@ -2,13 +2,13 @@
 // Componentes de layout compartilhados: Screen (com barra de abas/rodapé fixo),
 // TabBar, Botao e MedicoAvatar.
 import React from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from './Icons';
 import { colors, fonts, shadowBar } from '../theme';
 
 export function iniciais(nome) {
-  const partes = nome.replace(/^(Dr|Dra)\s+/i, '').split(' ').filter(Boolean);
+  const partes = (nome || '').replace(/^(Dr\.?|Dra\.?)\s+/i, '').split(' ').filter(Boolean);
   return ((partes[0]?.[0] || '') + (partes[partes.length - 1]?.[0] || '')).toUpperCase();
 }
 
@@ -36,7 +36,16 @@ const botaoVariantes = {
   perigo: { bg: colors.dangerBg, cor: colors.danger },
 };
 
-export function MedicoAvatar({ nome, size = 56 }) {
+export function MedicoAvatar({ nome, fotoUri, size = 56 }) {
+  if (fotoUri) {
+    return (
+      <Image
+        source={{ uri: fotoUri }}
+        style={[styles.avatarImagem, { width: size, height: size }]}
+        accessibilityLabel={`Foto de ${nome}`}
+      />
+    );
+  }
   return (
     <View style={[styles.avatar, { width: size, height: size }]}>
       <Text style={[styles.avatarTexto, { fontSize: size * 0.36 }]}>{iniciais(nome)}</Text>
@@ -118,6 +127,7 @@ const styles = StyleSheet.create({
   botao: { height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   botaoTexto: { fontFamily: fonts.bold, fontSize: 17 },
   avatar: { borderRadius: 16, backgroundColor: colors.mint, alignItems: 'center', justifyContent: 'center' },
+  avatarImagem: { borderRadius: 16, backgroundColor: colors.mint },
   avatarTexto: { fontFamily: fonts.title, color: colors.green },
   footer: { position: 'absolute', left: 24, right: 24 },
   tabBar: {

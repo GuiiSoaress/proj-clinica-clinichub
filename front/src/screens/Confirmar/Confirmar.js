@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Icon, { MiniMap } from '../../components/Icons';
 import { Screen, Botao, MedicoAvatar } from '../../components/Layout';
-import { useApp, MESES, pad } from '../../context/AppContext';
+import { useApp, MESES } from '../../context/AppContext';
 import { HORARIOS, UNIDADE } from '../../data/mock';
 import { colors, fonts } from '../../theme';
 
@@ -72,8 +72,8 @@ export default function Confirmar({ navigation }) {
       <View style={styles.bloco}>
         <Text style={styles.rotulo}>Médico selecionado</Text>
         <View style={styles.cardMedico}>
-          <MedicoAvatar nome={medicoSelecionado.nome} size={52} />
-          <View>
+          <MedicoAvatar nome={medicoSelecionado.nome} fotoUri={medicoSelecionado.fotoUri} size={52} />
+          <View style={{ flex: 1 }}>
             <Text style={styles.medicoNome}>{medicoSelecionado.nome}</Text>
             <Text style={styles.medicoSub}>{medicoSelecionado.especialidade} - CRM {medicoSelecionado.crm}</Text>
           </View>
@@ -153,16 +153,20 @@ export default function Confirmar({ navigation }) {
 
       <View style={styles.bloco}>
         <Text style={styles.h2}>Local</Text>
-        <View style={styles.local}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.navigate('ComoChegar')}
+          style={({ pressed }) => [styles.local, { opacity: pressed ? 0.85 : 1 }]}
+        >
           <View style={styles.mapa}>
             <MiniMap />
           </View>
           <View style={{ padding: 12, paddingHorizontal: 14, flex: 1 }}>
             <Text style={styles.localNome}>{UNIDADE.nome}</Text>
             <Text style={styles.localEnd}>{UNIDADE.endereco}</Text>
-            <Text style={styles.localDist}>{UNIDADE.distancia}</Text>
+            <Text style={styles.localDist}>Ver distância pelo GPS · Como chegar ›</Text>
           </View>
-        </View>
+        </Pressable>
       </View>
     </Screen>
   );

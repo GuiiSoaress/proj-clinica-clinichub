@@ -1,18 +1,44 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TextInput, ScrollView, StyleSheet, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as LocalAuthentication from 'expo-local-authentication';
 import Icon from '../../components/Icons';
 import { Botao } from '../../components/Layout';
 import { colors, fonts } from '../../theme';
 import { useApp } from '../../context/AppContext';
+import { obterToken } from '../../services/sessao';
 
-export default function Login() {
+export default function Login({ navigation }) {
   const insets = useSafeAreaInsets();
   const { login } = useApp();
   const [email, setEmail] = useState('recepcao@clinica.com');
   const [senha, setSenha] = useState('clinica123');
   const [entrando, setEntrando] = useState(false);
   const [erroLogin, setErroLogin] = useState(null);
+  const [biometriaDisponivel, setBiometriaDisponivel] = useState(false);
+
+  // Só exibe o atalho de biometria quando há sensor, biometria cadastrada e token salvo no cofre.
+  useEffect(() => {
+    let ativo = true;
+    const verificarBiometria = async () => {
+      try {
+        const [hardware, cadastrada, token] = await Promise.all([
+          LocalAuthentication.hasHardwareAsync(),
+          LocalAuthentication.isEnrolledAsync(),
+          obterToken(),
+        ]);
+        if (ativo) {
+          setBiometriaDisponivel(Boolean(hardware && cadastrada && token));
+        }
+      } catch (e) {
+        if (ativo) setBiometriaDisponivel(false);
+      }
+    };
+    verificarBiometria();
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   const entrar = async () => {
     setErroLogin(null); // Limpa erros antigos ao tentar novamente
@@ -89,10 +115,17 @@ export default function Login() {
             disabled={entrando} 
           />
 
-          <Pressable accessibilityRole="button" onPress={() => {}} style={styles.biometria} disabled={entrando}>
-            <Icon name="fingerprint" size={22} color={colors.green} />
-            <Text style={styles.biometriaTexto}>Entrar com biometria</Text>
-          </Pressable>
+          {biometriaDisponivel && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.navigate('LoginBiometrico')}
+              style={styles.biometria}
+              disabled={entrando}
+            >
+              <Icon name="fingerprint" size={22} color={colors.green} />
+              <Text style={styles.biometriaTexto}>Entrar com biometria</Text>
+            </Pressable>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -115,5 +148,3 @@ const styles = StyleSheet.create({
   biometriaTexto: { fontFamily: fonts.medium, fontSize: 15, color: colors.green },
   erro: { color: colors.coral, fontFamily: fonts.medium, fontSize: 14, marginBottom: 8 },
 });
-
-
