@@ -1,8 +1,10 @@
+import { Platform } from 'react-native';
 import { recuperarSessao } from './sessao';
 
 // Endereço base da API de Autenticação (porta 3001 conforme a Demo)
-// Em dispositivo físico (Expo Go), troque 'localhost' pelo IP da máquina (ex: http://192.168.0.x:3001)
-const BASE_URL = 'http://localhost:3001';
+// Em dispositivo físico (Expo Go), usa o IP da máquina na rede local; no navegador web usa localhost.
+const HOST_API = Platform.OS === 'web' ? 'localhost' : '10.110.12.28';
+const BASE_URL = `http://${HOST_API}:3001`;
 
 /**
  * Wrapper (encapsulador) em volta da função fetch padrão.

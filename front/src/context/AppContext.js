@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
-import { CONSULTAS_INICIAIS, UNIDADE } from '../data/mock';
+import { CONSULTAS_INICIAIS, MEDICOS, UNIDADE } from '../data/mock';
 import { recuperarSessao, limparSessao, salvarSessao } from '../services/sessao';
 import { apiFetch } from '../services/api';
 
@@ -13,31 +13,55 @@ export const formatarData = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}
 
 export function AppProvider({ children }) {
   const [consultas, setConsultas] = useState(CONSULTAS_INICIAIS);
+  const [medicos, setMedicos] = useState(MEDICOS);
   const [medicoSelecionado, setMedicoSelecionado] = useState(null);
+  const [fotoPacienteUri, setFotoPacienteUri] = useState(null);
 
   // Estados de autenticação
   const [usuario, setUsuario] = useState(null);
   const [token, setToken] = useState(null);
   const [verificandoSessao, setVerificandoSessao] = useState(true);
 
-  // Inicializa a sessão ao abrir o app:
-  // Essa função tenta recuperar o token do cofre assim que o AppProvider é montado.
-  // Graças ao "verificandoSessao", podemos segurar a tela de Splash ou Loading até terminar a leitura.
+  // Inicializa a verificação do cofre ao abrir o app:
+  // Na Aula 6 (biometria), se existir um token salvo no SecureStore, ele NÃO
+  // entra direto na área logada: permanece guardado no cofre para que a tela
+  // LoginBiometrico o destranque com a digital do usuário (ou permita entrar com senha).
   useEffect(() => {
     const carregarSessao = async () => {
       try {
-        const sessao = await recuperarSessao();
-        if (sessao && sessao.token) {
-          // Aqui poderíamos validar o token na API, mas confiaremos no armazenamento por enquanto
-          setToken(sessao.token);
-          setUsuario(sessao.usuario);
-        }
+        await recuperarSessao();
       } finally {
         setVerificandoSessao(false); // Terminou a leitura, independente de ter token ou não
       }
     };
     carregarSessao();
   }, []);
+
+  /**
+   * Destranca na memória do app a sessão que já estava guardada no SecureStore.
+   * Chamado somente após a confirmação biométrica no dispositivo (Aula 6).
+   */
+  const destrancarSessao = async () => {
+    const sessao = await recuperarSessao();
+    if (!sessao || !sessao.token) {
+      throw new Error('Nenhuma sessão salva encontrada para destrancar.');
+    }
+    setToken(sessao.token);
+    setUsuario(sessao.usuario || null);
+    if (sessao.usuario?.fotoUri) {
+      setFotoPacienteUri(sessao.usuario.fotoUri);
+    }
+    return sessao;
+  };
+
+  /**
+   * Bloqueia a sessão ativa na memória mantendo o token guardado no cofre,
+   * permitindo retornar à tela de desbloqueio biométrico sem apagar a sessão.
+   */
+  const bloquearSessao = () => {
+    setToken(null);
+    setUsuario(null);
+  };
 
   /**
    * Função chamada pela Tela de Login.
@@ -59,11 +83,50 @@ export function AppProvider({ children }) {
     }
 
     const dados = await resposta.json();
-    
+
     // Sucesso! Guarda fisicamente no cofre e depois na memória do React
     await salvarSessao(dados.token, dados.usuario);
     setToken(dados.token);
     setUsuario(dados.usuario);
+  };
+
+  /**
+   * Atualiza a foto de perfil do usuário logado na memória e no cofre local.
+   */
+  const atualizarFotoUsuario = async (uri) => {
+    setFotoPacienteUri(uri);
+    if (usuario) {
+      const atualizado = { ...usuario, fotoUri: uri };
+      setUsuario(atualizado);
+      if (token) {
+        await salvarSessao(token, atualizado);
+      }
+    }
+  };
+
+  /**
+   * Cadastra um novo médico ou atualiza um médico existente (incluindo fotoUri).
+   */
+  const salvarMedico = async (dadosMedico) => {
+    let registroSalvo = null;
+
+    if (dadosMedico.id) {
+      registroSalvo = { ...dadosMedico };
+      setMedicos((atuais) =>
+        atuais.map((m) => (m.id === dadosMedico.id ? { ...m, ...registroSalvo } : m))
+      );
+      setMedicoSelecionado((atual) =>
+        atual && atual.id === dadosMedico.id ? { ...atual, ...registroSalvo } : atual
+      );
+    } else {
+      registroSalvo = {
+        ...dadosMedico,
+        id: Date.now(),
+      };
+      setMedicos((atuais) => [registroSalvo, ...atuais]);
+    }
+
+    return registroSalvo;
   };
 
   /**
@@ -74,6 +137,7 @@ export function AppProvider({ children }) {
     await limparSessao();
     setToken(null);
     setUsuario(null);
+    setFotoPacienteUri(null);
     // Limpar dados do usuário ao sair
     setConsultas(CONSULTAS_INICIAIS);
   };
@@ -98,7 +162,13 @@ export function AppProvider({ children }) {
       verificandoSessao,
       login,
       logout,
+      destrancarSessao,
+      bloquearSessao,
       forceLogoutIfUnauthorized,
+      fotoPacienteUri,
+      atualizarFotoUsuario,
+      medicos,
+      salvarMedico,
       consultas,
       medicoSelecionado,
       setMedicoSelecionado,
@@ -123,7 +193,7 @@ export function AppProvider({ children }) {
       registrarSinaisVitais: (id, sinaisVitais) =>
         setConsultas((atual) => atual.map((c) => (c.id === id ? { ...c, sinaisVitais } : c))),
     }),
-    [consultas, medicoSelecionado, usuario, token, verificandoSessao]
+    [consultas, medicos, medicoSelecionado, usuario, token, verificandoSessao, fotoPacienteUri]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

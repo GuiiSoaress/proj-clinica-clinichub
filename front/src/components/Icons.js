@@ -93,6 +93,27 @@ export default function Icon({ name, size = 24, color = '#1d2b28', strokeWidth =
           <Path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z" />
         </Svg>
       );
+    case 'camera':
+      return (
+        <Svg {...common} strokeWidth={1.9}>
+          <Path d="M4 8h3l2-2.5h6L17 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z" />
+          <Circle cx="12" cy="13.5" r="3.5" />
+        </Svg>
+      );
+    case 'mapPin':
+      return (
+        <Svg {...common} fill={filled ? color : 'none'} strokeWidth={1.9}>
+          <Path d="M12 21s-7-5.8-7-11a7 7 0 0 1 14 0c0 5.2-7 11-7 11z" />
+          <Circle cx="12" cy="10" r="2.5" fill={filled ? '#ffffff' : 'none'} />
+        </Svg>
+      );
+    case 'stethoscope':
+      return (
+        <Svg {...common} strokeWidth={1.9}>
+          <Path d="M5 4v5a5 5 0 0 0 10 0V4M3 4h4M13 4h4M10 14v2a4 4 0 0 0 8 0v-3" />
+          <Circle cx="18" cy="11" r="2" />
+        </Svg>
+      );
     default:
       return null;
   }

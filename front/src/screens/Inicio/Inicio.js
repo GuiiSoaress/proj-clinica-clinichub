@@ -1,6 +1,6 @@
 // src/screens/Inicio/Inicio.js
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Icon from '../../components/Icons';
 import { Screen } from '../../components/Layout';
 import ConsultaCard from '../../components/ConsultaCard';
@@ -47,7 +47,7 @@ export default function Inicio({ navigation }) {
           <Atalho titulo="Agendar Consulta" icone="calendarPlus" destaque onPress={() => navigation.navigate('Agendar')} />
           <Atalho titulo="Minhas Consultas" icone="clipboard" onPress={() => navigation.navigate('Consultas')} />
           <Atalho titulo="Perfil" icone="user" onPress={() => navigation.navigate('Perfil')} />
-          <Atalho titulo="Exames" icone="flask" escuro onPress={() => Alert.alert('Exames', 'Em breve.')} />
+          <Atalho titulo="Como chegar" icone="mapPin" escuro onPress={() => navigation.navigate('ComoChegar')} />
         </View>
       </View>
 

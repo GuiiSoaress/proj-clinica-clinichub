@@ -1,18 +1,42 @@
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 // Chave utilizada para guardar os dados no cofre do dispositivo
 const CHAVE_SESSAO = 'clinica.sessao';
 
+async function gravarItem(chave, valor) {
+  if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+    localStorage.setItem(chave, valor);
+    return;
+  }
+  await SecureStore.setItemAsync(chave, valor);
+}
+
+async function lerItem(chave) {
+  if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+    return localStorage.getItem(chave);
+  }
+  return SecureStore.getItemAsync(chave);
+}
+
+async function removerItem(chave) {
+  if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+    localStorage.removeItem(chave);
+    return;
+  }
+  await SecureStore.deleteItemAsync(chave);
+}
+
 /**
  * Salva o token e os dados do usuário no armazenamento seguro.
  * @param {string} token - O JWT ou token de sessão da API.
- * @param {object} usuario - Objeto contendo os dados do usuário (id, nome, perfil).
+ * @param {object} usuario - Objeto contendo os dados do usuário (id, nome, perfil, fotoUri).
  */
 export async function salvarSessao(token, usuario) {
   try {
     // Como o SecureStore guarda apenas strings, precisamos converter o objeto para JSON
     const dados = JSON.stringify({ token, usuario });
-    await SecureStore.setItemAsync(CHAVE_SESSAO, dados);
+    await gravarItem(CHAVE_SESSAO, dados);
   } catch (e) {
     console.error('Erro ao salvar sessão', e);
   }
@@ -24,7 +48,7 @@ export async function salvarSessao(token, usuario) {
  */
 export async function recuperarSessao() {
   try {
-    const dados = await SecureStore.getItemAsync(CHAVE_SESSAO);
+    const dados = await lerItem(CHAVE_SESSAO);
     if (dados) {
       return JSON.parse(dados); // Desfaz a stringificação para devolver como objeto
     }
@@ -35,11 +59,20 @@ export async function recuperarSessao() {
 }
 
 /**
+ * Retorna apenas o token salvo no cofre (usado na checagem inicial da biometria).
+ * @returns {Promise<string|null>}
+ */
+export async function obterToken() {
+  const sessao = await recuperarSessao();
+  return sessao?.token || null;
+}
+
+/**
  * Remove a sessão do cofre (usado no logout).
  */
 export async function limparSessao() {
   try {
-    await SecureStore.deleteItemAsync(CHAVE_SESSAO);
+    await removerItem(CHAVE_SESSAO);
   } catch (e) {
     console.error('Erro ao limpar sessão', e);
   }

@@ -40,9 +40,9 @@ alguns destes itens.
 
 - [ ] Protótipo wireframe das interfaces da aplicação (Figma)
 - [x] Projeto do aplicativo configurado e versionado no Git 
-- [ ] Cadastro de foto de perfil (paciente e médico) via câmera do dispositivo 
-- [ ] Login com biometria implementado para médico/recepção 
-- [ ] Geolocalização (GPS) com cálculo de distância/tempo até a clínica 
+- [x] Cadastro de foto de perfil (paciente e médico) via câmera do dispositivo 
+- [x] Login com biometria implementado para médico/recepção 
+- [x] Geolocalização (GPS) com cálculo de distância/tempo até a clínica 
 - [x] Importação de sinais vitais de um periférico via Bluetooth antes da consulta
       (modo simulado; modo real pronto, exige development build: ver `Docs/004-bluetooth-modo-real.md`)
 - [ ] Implementação das interfaces de listagem (leitura) para pacientes, médicos,
@@ -75,17 +75,19 @@ alguns destes itens.
 | Splash | [a preencher] | Menu |
 | Menu | [a preencher] | Médicos, Pacientes, Consultas |
 | Médicos (listagem) | [a preencher] | Cadastro/Edição de Médico |
-| Cadastro/Edição de Médico | [a preencher] | — |
+| Cadastro/Edição de Médico | Cadastro e edição de dados do médico com foto de perfil via câmera (`expo-image-picker`) | Agendar (volta) |
+| Login Biométrico | Destranca o token salvo no cofre do dispositivo via digital/biometria (`expo-local-authentication`) | Início, Login (e-mail/senha) |
+| Como Chegar | Exibe endereço da clínica e calcula distância em linha reta + tempo estimado via GPS (`expo-location`) | — |
 | [adicionar novas telas conforme implementadas] | | |
 
 ## Tecnologias
 
 - [React Native](https://reactnative.dev/) com [Expo](https://expo.dev/)
 - React Navigation (`@react-navigation/native`, `@react-navigation/stack`)
-- [a preencher: bibliotecas adicionadas a cada aula — expo-camera/expo-image-picker,
-  expo-local-authentication, expo-location, expo-notifications, expo-task-manager,
+- Periféricos e armazenamento seguro: `expo-image-picker`, `expo-local-authentication`, `expo-location`, `expo-secure-store`, `react-native-ble-plx`
+- [a preencher: bibliotecas das próximas aulas — expo-notifications, expo-task-manager,
   react-native-maps, etc.]
-- API RESTful da clínica (mock local via `json-server` durante o desenvolvimento)
+- API RESTful da clínica (mock local via `json-server` / `auth-api.js` durante o desenvolvimento)
 
 ## Pré-requisitos
 
@@ -147,9 +149,9 @@ um, quando a permissão é pedida e o que acontece se o usuário negar:
 
 | Recurso | Quando é solicitado | Comportamento se negado |
 |---|---|---|
-| Câmera | [a preencher — Aula 1] | [a preencher] |
-| Biometria | [a preencher — Aula 6] | [a preencher] |
-| Localização (GPS) | [a preencher — Aula 6] | [a preencher] |
+| Câmera | Ao tocar em "Tirar foto de perfil" no formulário de médico (`MedicoForm`) ou no avatar da tela `Perfil` | Exibe um `Alert` explicando que a câmera é necessária para a foto de perfil; o cadastro/edição continua funcionando normalmente sem foto |
+| Biometria | Ao tocar em "Entrar com biometria" na tela `LoginBiometrico` (somente quando há sensor, biometria cadastrada e token salvo no cofre) | Cancelamento (`user_cancel`) é tratado como escolha sem erro; em falha ou ausência de sensor/biometria, o link "Entrar com e-mail e senha" permanece sempre visível |
+| Localização (GPS) | Ao abrir ou tocar em atualizar na tela `Como chegar` (`requestForegroundPermissionsAsync`) | O endereço da clínica permanece visível; se ainda puder perguntar (`canAskAgain: true`), explica e oferece tentar novamente; se negado permanentemente (`canAskAgain: false`), oferece atalho para `Linking.openSettings()` |
 | Bluetooth | Ao tocar em "Procurar aparelhos" na tela Sinais vitais (só no modo real). Android 12+: `BLUETOOTH_SCAN`/`BLUETOOTH_CONNECT`; Android ≤ 11: localização precisa | A tela avisa que não há permissão, explica como liberar nas configurações e oferece "Digitar os valores manualmente" |
 | Notificações | [a preencher — Aulas 8-9] | [a preencher] |
 

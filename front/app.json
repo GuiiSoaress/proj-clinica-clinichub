@@ -28,7 +28,27 @@
     "plugins": [
       "expo-font",
       "expo-secure-store",
-      "react-native-ble-plx"
+      "react-native-ble-plx",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O ClinicHub usa a câmera para tirar a foto de perfil no cadastro.",
+          "photosPermission": "O ClinicHub acessa a galeria para escolher uma foto de perfil."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "O ClinicHub usa a biometria para destrancar sua sessão salva com rapidez."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O ClinicHub usa sua localização apenas para calcular a distância até a clínica."
+        }
+      ],
+      "expo-status-bar"
     ]
   }
 }
