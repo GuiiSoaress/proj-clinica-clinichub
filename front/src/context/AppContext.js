@@ -117,6 +117,11 @@ export function AppProvider({ children }) {
       },
       cancelar: (id) =>
         setConsultas((atual) => atual.map((c) => (c.id === id ? { ...c, status: 'cancelada' } : c))),
+      // Guarda na consulta os sinais vitais já gravados no prontuário (Aula 7),
+      // para a tela de detalhes exibir o resultado.
+      // sinaisVitais: { frequenciaMedia, quantidadeLeituras, origem, registradoEm }
+      registrarSinaisVitais: (id, sinaisVitais) =>
+        setConsultas((atual) => atual.map((c) => (c.id === id ? { ...c, sinaisVitais } : c))),
     }),
     [consultas, medicoSelecionado, usuario, token, verificandoSessao]
   );

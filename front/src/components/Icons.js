@@ -87,6 +87,12 @@ export default function Icon({ name, size = 24, color = '#1d2b28', strokeWidth =
           <Path d="M12 11c0 3-1 5-2 7M8 8a4 4 0 0 1 8 0c0 1.5-.2 3-.5 4.5M5 10a7 7 0 0 1 14 0v1M5 14c0-1 0-2 .2-3M16 17c-.4 1.4-1 2.6-1.8 3.6" />
         </Svg>
       );
+    case 'heart':
+      return (
+        <Svg {...common} fill={filled ? color : 'none'} strokeWidth={1.9}>
+          <Path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z" />
+        </Svg>
+      );
     default:
       return null;
   }

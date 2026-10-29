@@ -18,7 +18,7 @@ ClinicHub é um app mobile de agendamento de consultas para clínica médica. É
 |---|---|
 | `front/` | App Expo / React Native (único código existente hoje). |
 | `back/` | Só um `README.md` vazio; backend ainda não existe. |
-| `Docs/` | ADRs em `.docx` (001 serviço de mapas, 002 push notifications, 003 SMS), `Link Figma.txt` e imagem do protótipo. |
+| `Docs/` | ADRs em `.docx` (001 serviço de mapas, 002 push notifications, 003 SMS), `004-bluetooth-modo-real.md` (como ativar o BLE real), `Link Figma.txt` e imagem do protótipo. |
 | `README.md` | Descrição do projeto, squad e checklist de funcionalidades (ainda com trechos do template). |
 | `package-lock.json` (raiz) | Resquício; as dependências reais ficam em `front/`. |
 
@@ -44,10 +44,11 @@ Os três ADRs são do squad "Clinic Hub", datados de 03/09/2026, com situação 
 
 ## Estado atual
 
-- **Concluído:** projeto configurado e versionado no Git; as 7 telas do paciente (Login, Início, Agendar, Confirmar, Confirmada, Minhas Consultas, Perfil) implementadas a partir do protótipo.
-- **Em mock:** todos os dados vêm de `front/src/data/mock.js` e do estado local em `front/src/context/AppContext.js`. Não há chamada de API nas telas.
-- **Não iniciado:** backend/API, autenticação real, câmera, biometria real, GPS, Bluetooth, push, SMS, mapas, background, telas de médico/recepção.
-- **Legado:** `front/mockup/db_clinica.json` (base do `json-server`, com `medicos` e `pacientes`) e `front/src/services/api.js` (`BASE_URL`, hoje sem uso). As telas e o CRUD de médicos anteriores foram removidos; estão no histórico do Git.
+- **Concluído:** projeto configurado e versionado no Git; as 7 telas do paciente (Login, Início, Agendar, Confirmar, Confirmada, Minhas Consultas, Perfil) implementadas a partir do protótipo; login com token via `front/servidor/auth-api.js` (porta 3001, `npm run auth-api`) e sessão no `expo-secure-store`.
+- **Bluetooth (Aula 7):** tela `SinaisVitais` (aberta pelo card "Sinais vitais" da `Confirmada`, só em consultas `proxima`) + service `front/src/services/bluetooth.js` com modo simulado (ativo) e real (`react-native-ble-plx`, exige development build). A média vai para `POST /sinais-vitais` da auth-api. Guia de troca de modo: `Docs/004-bluetooth-modo-real.md`.
+- **Em mock:** consultas, médicos e horários vêm de `front/src/data/mock.js` e do estado local em `front/src/context/AppContext.js`.
+- **Não iniciado:** CRUD na API, câmera, biometria real, GPS, push, SMS, mapas, background, telas de médico/recepção.
+- **Legado:** `front/mockup/db_clinica.json` (base do `json-server`, com `medicos` e `pacientes`). As telas e o CRUD de médicos anteriores foram removidos; estão no histórico do Git.
 
 ## Comandos
 

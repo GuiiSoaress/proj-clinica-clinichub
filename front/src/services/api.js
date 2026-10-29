@@ -32,4 +32,32 @@ export async function apiFetch(endpoint, options = {}) {
   return response;
 }
 
+/**
+ * Atalho para POST com corpo JSON (usa o apiFetch, então já leva o token).
+ * Lança um Error com a mensagem da API quando a resposta não é 2xx.
+ * @param {string} endpoint - Caminho da rota (ex.: '/sinais-vitais').
+ * @param {object} corpo - Objeto que será enviado como JSON.
+ * @returns {Promise<object|null>} Corpo da resposta já convertido.
+ */
+export async function post(endpoint, corpo) {
+  const response = await apiFetch(endpoint, {
+    method: 'POST',
+    body: JSON.stringify(corpo),
+  });
+
+  let dados = null;
+  try {
+    dados = await response.json();
+  } catch (e) {
+    // Resposta sem corpo JSON: segue com null.
+  }
+
+  if (!response.ok) {
+    const erro = new Error(dados?.erro || `Erro HTTP ${response.status}`);
+    erro.status = response.status;
+    throw erro;
+  }
+  return dados;
+}
+
 export default BASE_URL;

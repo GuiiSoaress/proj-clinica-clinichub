@@ -1,0 +1,12 @@
+
+cd front
+
+npm run auth-api
+
+
+usuarios cadastrados 
+
+id: 1, email: 'recepcao@clinica.com', senha: 'clinica123', nome: 'Recepção', perfil: 'recepcao' 
+id: 2, email: 'joao@clinica.com',     senha: 'medico123',  nome: 'Dr. João de Oliveira', perfil: 'medico' 
+
+alterar na auth-api.js
