@@ -3,7 +3,7 @@ import { recuperarSessao } from './sessao';
 
 // Endereço base da API de Autenticação (porta 3001 conforme a Demo)
 // Em dispositivo físico (Expo Go), usa o IP da máquina na rede local; no navegador web usa localhost.
-const HOST_API = Platform.OS === 'web' ? 'localhost' : '10.110.12.28';
+const HOST_API = Platform.OS === 'web' ? 'localhost' : '10.110.12.63';
 const BASE_URL = `http://${HOST_API}:3001`;
 
 /**
