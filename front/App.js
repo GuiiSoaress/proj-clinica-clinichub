@@ -1,8 +1,8 @@
 // App.js
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
@@ -22,12 +22,85 @@ import Perfil from './src/screens/Perfil/Perfil';
 import SinaisVitais from './src/screens/Consulta/SinaisVitais';
 import ComoChegar from './src/screens/Clinica/ComoChegar';
 import CadastroEdicaoMedicoScreen from './src/screens/Medico/CadastroEdicaoMedicoScreen';
+import NotificacoesScreen from './src/screens/Notificacoes/NotificacoesScreen';
+
+// Passo 2 - Item 4: chamar configurarHandler() uma vez, no topo do App.js
+import {
+  configurarHandler,
+  prepararCanal,
+  Notifications,
+} from './src/services/lembretes';
+
+configurarHandler();
+
+// Passo 4 - Item 21: Usar uma ref no NavigationContainer para conseguir navegar de fora das telas
+export const navigationRef = createNavigationContainerRef();
 
 const Stack = createStackNavigator();
 
 function RootNavigator() {
   // Consumimos o estado global para saber se tem alguém logado
   const { token, verificandoSessao } = useApp();
+
+  // Passo 4 - Item 20: Guarda para não navegar de novo a cada recarga em desenvolvimento
+  const idUltimaNotifProcessada = useRef(null);
+  const pendenciaNavegacao = useRef(null);
+
+  const processarRespostaNotificacao = (resposta) => {
+    if (!resposta || !resposta.notification) return;
+
+    const identifier = resposta.notification.request?.identifier;
+    if (identifier && idUltimaNotifProcessada.current === identifier) {
+      return; // Já processada nesta sessão/recarga
+    }
+    if (identifier) {
+      idUltimaNotifProcessada.current = identifier;
+    }
+
+    const data = resposta.notification.request?.content?.data;
+    if (data?.tela) {
+      const params = data.consultaId ? { id: data.consultaId } : {};
+
+      if (token && navigationRef.isReady()) {
+        navigationRef.navigate(data.tela, params);
+      } else {
+        // Se ainda não estiver na área logada ou o navigator não estiver pronto,
+        // guarda a pendência para navegar logo após o login/desbloqueio biométrico
+        pendenciaNavegacao.current = { tela: data.tela, params };
+      }
+    }
+  };
+
+  useEffect(() => {
+    // Passo 2 - Item 5: prepararCanal() para o Android, com importance HIGH
+    prepararCanal();
+
+    // Passo 4 - Item 18: Caminho A — app aberto ou em segundo plano
+    const subResposta = Notifications.addNotificationResponseReceivedListener((resposta) => {
+      processarRespostaNotificacao(resposta);
+    });
+
+    // Passo 4 - Item 19: Caminho B — app fechado (o toque abre o app)
+    Notifications.getLastNotificationResponseAsync().then((respostaInicial) => {
+      if (respostaInicial) {
+        processarRespostaNotificacao(respostaInicial);
+      }
+    });
+
+    // Passo 4 - Item 22: Removam os listeners no retorno do useEffect
+    return () => {
+      subResposta?.remove();
+    };
+  }, []);
+
+  // Quando o usuário completa o login ou desbloqueio biométrico, efetiva a navegação pendente
+  useEffect(() => {
+    if (token && pendenciaNavegacao.current && navigationRef.isReady()) {
+      const { tela, params } = pendenciaNavegacao.current;
+      pendenciaNavegacao.current = null;
+      navigationRef.navigate(tela, params);
+    }
+  }, [token]);
 
   // Enquanto estiver lendo o Secure Store (operação assíncrona), mostra loading
   if (verificandoSessao) {
@@ -38,11 +111,9 @@ function RootNavigator() {
     );
   }
 
-  // O NavigationContainer gerencia as rotas. 
-  // Dependendo do `token`, montamos um "Stack" diferente (Telas Privadas vs Públicas).
-  // Essa é a proteção de rotas: se não tem token, o aplicativo não deixa renderizar a tela "Inicio".
+  // O NavigationContainer gerencia as rotas com navigationRef (Passo 4 - Item 21).
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{ headerShown: false, cardStyle: { backgroundColor: colors.bg } }}
       >
@@ -58,6 +129,7 @@ function RootNavigator() {
             <Stack.Screen name="SinaisVitais" component={SinaisVitais} />
             <Stack.Screen name="ComoChegar" component={ComoChegar} />
             <Stack.Screen name="CadastroEdicaoMedico" component={CadastroEdicaoMedicoScreen} />
+            <Stack.Screen name="Notificacoes" component={NotificacoesScreen} />
           </>
         ) : (
           // === ROTAS PÚBLICAS (Usuário Deslogado ou Sessão Trancada) ===

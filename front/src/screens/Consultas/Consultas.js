@@ -1,5 +1,5 @@
 // src/screens/Consultas/Consultas.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Icon from '../../components/Icons';
 import { Screen } from '../../components/Layout';
@@ -14,10 +14,15 @@ const ABAS = [
 ];
 
 export default function Consultas({ navigation }) {
-  const { consultas } = useApp();
+  const { consultas, sincronizarLembretesAgenda } = useApp();
   const [aba, setAba] = useState('proxima');
   const atual = ABAS.find((a) => a.chave === aba);
   const lista = consultas.filter((c) => c.status === aba).sort((a, b) => a.data - b.data);
+
+  // Passo 7 (Extensão): sincroniza lembretes com a agenda real ao abrir a tela
+  useEffect(() => {
+    sincronizarLembretesAgenda?.();
+  }, [sincronizarLembretesAgenda]);
 
   return (
     <Screen navigation={navigation} tab="Inicio">

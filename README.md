@@ -51,14 +51,14 @@ alguns destes itens.
       especialidades e horários 
 - [ ] Integração inicial com os endpoints de usuários e login, via HTTPS
 - [ ] Identificação dos recursos que dependem de Web Services de terceiros
-- [ ] Notificação local/push como lembrete de consulta agendada
+- [x] Notificação local como lembrete de consulta agendada (Aula 8)
 - [ ] Processamento multithread para tarefas pesadas não travarem a interface
 - [ ] Sincronização da agenda em segundo plano (tarefa/serviço background)
 - [ ] Mapa exibindo a localização da clínica dentro do aplicativo
 - [ ] Confirmação/cancelamento de consulta enviado por SMS
-- [ ] Funcionalidade de agendamento de consultas (paciente)
-- [ ] Funcionalidade de listagem das consultas agendadas
-- [ ] Funcionalidade de cancelamento de consulta
+- [x] Funcionalidade de agendamento de consultas (paciente)
+- [x] Funcionalidade de listagem das consultas agendadas
+- [x] Funcionalidade de cancelamento de consulta
 - [ ] Funcionalidade de visualização de agenda para o médico
 - [ ] Aplicação com testes end-to-end rodando com sucesso 
 - [ ] Documentação do sistema — guia do usuário e técnica 
@@ -153,7 +153,17 @@ um, quando a permissão é pedida e o que acontece se o usuário negar:
 | Biometria | Ao tocar em "Entrar com biometria" na tela `LoginBiometrico` (somente quando há sensor, biometria cadastrada e token salvo no cofre) | Cancelamento (`user_cancel`) é tratado como escolha sem erro; em falha ou ausência de sensor/biometria, o link "Entrar com e-mail e senha" permanece sempre visível |
 | Localização (GPS) | Ao abrir ou tocar em atualizar na tela `Como chegar` (`requestForegroundPermissionsAsync`) | O endereço da clínica permanece visível; se ainda puder perguntar (`canAskAgain: true`), explica e oferece tentar novamente; se negado permanentemente (`canAskAgain: false`), oferece atalho para `Linking.openSettings()` |
 | Bluetooth | Ao tocar em "Procurar aparelhos" na tela Sinais vitais (só no modo real). Android 12+: `BLUETOOTH_SCAN`/`BLUETOOTH_CONNECT`; Android ≤ 11: localização precisa | A tela avisa que não há permissão, explica como liberar nas configurações e oferece "Digitar os valores manualmente" |
-| Notificações | [a preencher — Aulas 8-9] | [a preencher] |
+| Notificações | Ao agendar consulta ou acessar a tela de Notificações (`garantirPermissao`) | Se negada, o agendamento conclui normalmente e a tela Confirmada avisa que o lembrete não será disparado; se `canAskAgain: false`, devolve `false` sem insistir e oferece atalho para `Linking.openSettings()` |
+
+### Decisão de Privacidade: Texto do Lembrete na Tela Bloqueada (Aula 8 — Passo 6)
+
+Em discussão da squad sobre privacidade e proteção de dados sensíveis de saúde (LGPD):
+- **Problema:** A notificação local é exibida na tela de bloqueio do celular, visível para qualquer pessoa próxima.
+- **Risco:** Um texto como *"Consulta com Dr. Fulano, oncologista, às 14h"* expõe publicamente o tratamento de saúde do paciente.
+- **Decisão adotada:** O texto do lembrete é estritamente neutro:
+  - **Título:** `Lembrete de consulta`
+  - **Corpo:** `Você tem uma consulta agendada às HH:mm.`
+  - Os dados completos (especialidade, médico, unidade) ficam protegidos e só são visualizados quando o usuário desbloqueia o aparelho e toca na notificação para abrir a tela da consulta.
 
 ## Testes
 

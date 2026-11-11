@@ -31,6 +31,7 @@ export default function Confirmada({ navigation, route }) {
   }
 
   const cancelada = consulta.status === 'cancelada';
+  const lembreteInfo = route.params?.lembrete || consulta.lembrete;
 
   return (
     <Screen
@@ -38,28 +39,66 @@ export default function Confirmada({ navigation, route }) {
       footer={
         <View style={{ gap: 10 }}>
           <Botao titulo="Minhas Consultas" onPress={() => navigation.navigate('Consultas')} />
+          {!cancelada && (
+            <Botao
+              titulo="Remarcar Consulta"
+              variante="branco"
+              onPress={() => navigation.navigate('Confirmar', { remarcarId: consulta.id })}
+            />
+          )}
           <Botao titulo="Fechar" variante="branco" onPress={() => navigation.navigate('Inicio')} />
           {!cancelada && (
             <Botao
               titulo="Cancelar Consulta"
               variante="perigo"
-              onPress={() => {
-                cancelar(consulta.id);
+              onPress={async () => {
+                await cancelar(consulta.id);
                 navigation.navigate('Consultas');
               }}
             />
           )}
         </View>
       }
-      contentStyle={{ paddingBottom: 280 }}
+      contentStyle={{ paddingBottom: 320 }}
     >
       <View style={styles.topo}>
         <View style={[styles.selo, cancelada && { backgroundColor: colors.danger }]}>
           <Icon name="check" size={52} color={colors.white} />
         </View>
-        <Text style={styles.titulo}>{cancelada ? 'Consulta Cancelada' : 'Consulta Confirmada!'}</Text>
+        <Text style={styles.titulo}>
+          {cancelada
+            ? 'Consulta Cancelada'
+            : route.params?.remarcada
+              ? 'Consulta Remarcada!'
+              : 'Consulta Confirmada!'}
+        </Text>
         {!cancelada && <Text style={styles.sub}>Enviamos os detalhes para o seu e-mail.</Text>}
       </View>
+
+      {/* Card de status do lembrete (Passo 3 - Item 13: Honestidade no aviso) */}
+      {!cancelada && (
+        <View style={styles.cardLembrete}>
+          <View style={styles.lembreteIcone}>
+            <Icon name="calendarPlus" size={20} color={colors.green} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.lembreteTitulo}>Lembrete no aparelho</Text>
+            {lembreteInfo?.motivo === 'horario_passado' ? (
+              <Text style={styles.lembreteTextoAlerta}>
+                A consulta é em menos de 1 hora. O horário de antecedência do lembrete já passou, portanto nenhum aviso foi programado.
+              </Text>
+            ) : lembreteInfo?.motivo === 'permissao_negada' ? (
+              <Text style={styles.lembreteTextoAlerta}>
+                Permissão de notificações não concedida. O aplicativo não poderá lembrá-lo antes do horário.
+              </Text>
+            ) : (
+              <Text style={styles.lembreteTexto}>
+                Programado para avisar 1 hora antes no seu celular (mesmo sem internet).
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
 
       <View style={styles.card}>
         <Linha rotulo="Especialidade" valor={consulta.especialidade} />
@@ -118,4 +157,27 @@ const styles = StyleSheet.create({
   vitaisTexto: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2, lineHeight: 18 },
   vitaisValor: { fontFamily: fonts.bold, color: colors.ink },
   botaoContorno: { borderWidth: 1, borderColor: colors.border },
+  cardLembrete: {
+    marginTop: 20,
+    marginHorizontal: 24,
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  lembreteIcone: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.mint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lembreteTitulo: { fontFamily: fonts.bold, fontSize: 15, color: colors.ink },
+  lembreteTexto: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2, lineHeight: 18 },
+  lembreteTextoAlerta: { fontFamily: fonts.body, fontSize: 13, color: colors.coral, marginTop: 2, lineHeight: 18 },
 });
