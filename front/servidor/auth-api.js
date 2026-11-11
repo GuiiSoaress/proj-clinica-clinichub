@@ -106,6 +106,10 @@ const CONSULTAS = [
   },
 ];
 
+// Dispositivos registrados para Push Notifications (Aula 9).
+// Mapeamento: token -> { token, usuarioId, usuarioNome, plataforma, registradoEm }
+const DISPOSITIVOS = new Map();
+
 // Igual a lerCorpo, mas sem imprimir o conteúdo: usado em rotas que
 // recebem dado de saúde.
 function lerCorpoSemLog(req) {
@@ -252,6 +256,37 @@ const servidor = http.createServer(async (req, res) => {
     CONSULTAS[index].canceladoEm = new Date().toISOString();
     console.log(`  consulta cancelada no servidor via DELETE: ${id}`);
     return json(res, 200, { sucesso: true, id, status: 'cancelada' });
+  }
+
+  // -------------------------------------------------- DISPOSITIVOS PUSH (Aula 9)
+  if (req.url === '/dispositivos' && req.method === 'POST') {
+    const usuario = usuarioDoToken(req);
+    if (!usuario) return json(res, 401, { erro: 'Token de autenticação ausente ou inválido.' });
+
+    const corpo = await lerCorpo(req);
+    if (!corpo || !corpo.token) {
+      return json(res, 400, { erro: 'Informe o token do dispositivo.' });
+    }
+
+    const registro = {
+      token: corpo.token,
+      usuarioId: usuario.id,
+      usuarioNome: usuario.nome,
+      plataforma: corpo.plataforma || 'desconhecida',
+      registradoEm: new Date().toISOString(),
+    };
+
+    DISPOSITIVOS.set(corpo.token, registro);
+    console.log(`  dispositivo push registrado na API: ${usuario.nome} (#${usuario.id}) -> ${corpo.token}`);
+    return json(res, 201, { sucesso: true, dispositivo: registro });
+  }
+
+  if (req.url === '/dispositivos' && req.method === 'GET') {
+    const usuario = usuarioDoToken(req);
+    if (!usuario) return json(res, 401, { erro: 'Token de autenticação ausente ou inválido.' });
+
+    const lista = Array.from(DISPOSITIVOS.values()).filter((d) => d.usuarioId === usuario.id);
+    return json(res, 200, lista);
   }
 
   json(res, 404, { erro: 'Rota não encontrada.' });

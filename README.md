@@ -51,7 +51,7 @@ alguns destes itens.
       especialidades e horários 
 - [ ] Integração inicial com os endpoints de usuários e login, via HTTPS
 - [ ] Identificação dos recursos que dependem de Web Services de terceiros
-- [x] Notificação local como lembrete de consulta agendada (Aula 8)
+- [x] Notificação local/push como lembrete de consulta agendada (Aulas 8 e 9)
 - [ ] Processamento multithread para tarefas pesadas não travarem a interface
 - [ ] Sincronização da agenda em segundo plano (tarefa/serviço background)
 - [ ] Mapa exibindo a localização da clínica dentro do aplicativo
@@ -164,6 +164,35 @@ Em discussão da squad sobre privacidade e proteção de dados sensíveis de sa�
   - **Título:** `Lembrete de consulta`
   - **Corpo:** `Você tem uma consulta agendada às HH:mm.`
   - Os dados completos (especialidade, médico, unidade) ficam protegidos e só são visualizados quando o usuário desbloqueia o aparelho e toca na notificação para abrir a tela da consulta.
+
+### Contrato de Notificação Push (App ↔ Servidor da Clínica — Aula 9, Passo 4)
+
+O aplicativo e o servidor da clínica comunicam-se via Expo Push Service segundo o seguinte contrato de dados (`content.data`):
+
+| Campo | Tipo | Obrigatório | Descrição |
+|---|---|:---:|---|
+| `consultaId` | `string` ou `number` | Sim | Identificador único da consulta no sistema da clínica (ex.: `"c1"` ou `42`). |
+| `tela` | `string` | Sim | Rota de destino no aplicativo: deve ser `"Confirmada"` (ou o alias retrocompatível `"DetalheConsulta"`). |
+
+Exemplo de carga enviada pelo servidor da clínica (`POST https://exp.host/--/api/v2/push/send`):
+```json
+{
+  "to": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+  "title": "Lembrete de consulta",
+  "body": "Você tem uma consulta agendada às 14:00.",
+  "sound": "default",
+  "channelId": "lembretes-consulta",
+  "data": {
+    "consultaId": "c1",
+    "tela": "Confirmada"
+  }
+}
+```
+
+### Arquitetura Combinada: Notificações Locais + Push Remoto (Aula 9 — Passo 7)
+- **Lembrete de 1 hora antes:** Fica agendado localmente no próprio aparelho (`src/services/lembretes.js`). Vantagem: funciona offline (mesmo sem internet ou em modo avião).
+- **Avisos dinâmicos da clínica:** Chegam via Push Notifications disparados pelo servidor (`src/services/push.js` e scripts de envio). Vantagem: permite que a recepção avise em tempo real sobre atrasos, cancelamentos ou alterações na agenda.
+- **Degradação graciosa:** Se o aparelho for um emulador (`Device.isDevice === false`) ou a permissão for negada, o aplicativo continua operando 100% sem falhas, avisando claramente na interface que o paciente continuará recebendo o lembrete local, mas não avisos dinâmicos da clínica.
 
 ## Testes
 

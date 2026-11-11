@@ -59,14 +59,16 @@ function RootNavigator() {
 
     const data = resposta.notification.request?.content?.data;
     if (data?.tela) {
-      const params = data.consultaId ? { id: data.consultaId } : {};
+      // Contrato: aceita 'Confirmada' ou o alias 'DetalheConsulta'
+      const telaDestino = data.tela === 'DetalheConsulta' ? 'Confirmada' : data.tela;
+      const params = data.consultaId ? { id: String(data.consultaId) } : {};
 
       if (token && navigationRef.isReady()) {
-        navigationRef.navigate(data.tela, params);
+        navigationRef.navigate(telaDestino, params);
       } else {
         // Se ainda não estiver na área logada ou o navigator não estiver pronto,
         // guarda a pendência para navegar logo após o login/desbloqueio biométrico
-        pendenciaNavegacao.current = { tela: data.tela, params };
+        pendenciaNavegacao.current = { tela: telaDestino, params };
       }
     }
   };

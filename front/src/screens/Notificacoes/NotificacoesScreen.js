@@ -1,7 +1,7 @@
 // src/screens/Notificacoes/NotificacoesScreen.js
-// Tela de gerenciamento e diagnóstico de lembretes locais (Aula 8).
-// Permite verificar permissão, auditar lista com getAllScheduledNotificationsAsync()
-// e executar os testes rápidos previstos nos Passos 3 e 4.
+// Tela de gerenciamento e diagnóstico de lembretes locais (Aula 8) e Push Remoto (Aula 9).
+// Permite auditar lista com getAllScheduledNotificationsAsync(), verificar status do push,
+// copiar token do dispositivo e testar o envio de notificações.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -15,6 +15,9 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import * as Device from 'expo-device';
+import * as Clipboard from 'expo-clipboard';
+
 import Icon from '../../components/Icons';
 import { Screen, Botao } from '../../components/Layout';
 import { colors, fonts } from '../../theme';
@@ -26,6 +29,10 @@ import {
   agendarLembrete,
   Notifications,
 } from '../../services/lembretes';
+import {
+  manterRegistroAtualizado,
+  obterTokenSalvo,
+} from '../../services/push';
 import { useApp } from '../../context/AppContext';
 
 export default function NotificacoesScreen({ navigation }) {
@@ -34,20 +41,45 @@ export default function NotificacoesScreen({ navigation }) {
   const [agendadas, setAgendadas] = useState([]);
   const [carregando, setCarregando] = useState(true);
 
+  // Estados do Push (Aula 9)
+  const [pushToken, setPushToken] = useState(null);
+  const [pushStatus, setPushStatus] = useState('verificando...'); // 'ativo' | 'sem_permissao' | 'emulador' | 'web' | 'pendente'
+  const [canAskAgain, setCanAskAgain] = useState(true);
+  const [copiado, setCopiado] = useState(false);
+  const [registrandoPush, setRegistrandoPush] = useState(false);
+
   const carregarStatus = useCallback(async () => {
     setCarregando(true);
     try {
       if (Platform.OS !== 'web') {
         const resp = await Notifications.getPermissionsAsync();
         setPermissao(resp.status);
+        setCanAskAgain(resp.canAskAgain);
+
         const lista = await listarLembretesAgendados();
         setAgendadas(lista);
+
+        // Checagem de Push
+        if (!Device.isDevice) {
+          setPushStatus('emulador');
+        } else if (resp.status !== 'granted') {
+          setPushStatus('sem_permissao');
+        } else {
+          const salvo = await obterTokenSalvo();
+          if (salvo) {
+            setPushToken(salvo);
+            setPushStatus('ativo');
+          } else {
+            setPushStatus('pendente');
+          }
+        }
       } else {
         setPermissao('web (não suportado)');
+        setPushStatus('web');
         setAgendadas([]);
       }
     } catch (e) {
-      console.warn('Erro ao carregar notificações:', e);
+      console.warn('Erro ao carregar status de notificações:', e);
     } finally {
       setCarregando(false);
     }
@@ -73,7 +105,46 @@ export default function NotificacoesScreen({ navigation }) {
     await carregarStatus();
   };
 
-  // Teste rápido 1: Daqui a 5 segundos (para verificar o handler e o banner)
+  // Sincroniza / registra o token de Push na API (Aula 9)
+  const sincronizarPushToken = async () => {
+    setRegistrandoPush(true);
+    try {
+      const res = await manterRegistroAtualizado();
+      if (res.sucesso && res.token) {
+        setPushToken(res.token);
+        setPushStatus('ativo');
+        Alert.alert('Sucesso!', 'Token do dispositivo registrado na API da clínica.');
+      } else {
+        if (res.motivo === 'emulador') {
+          setPushStatus('emulador');
+          Alert.alert(
+            'Indisponível no Emulador',
+            'Push notifications exigem aparelho físico. Use um celular com development build.'
+          );
+        } else if (res.motivo === 'permissao_negada') {
+          setPushStatus('sem_permissao');
+          Alert.alert(
+            'Permissão negada',
+            'Permissão de notificação necessária para receber avisos push da clínica.'
+          );
+        } else {
+          Alert.alert('Aviso de registro', res.erro || 'Falha ao sincronizar push token.');
+        }
+      }
+    } finally {
+      setRegistrandoPush(false);
+      await carregarStatus();
+    }
+  };
+
+  const copiarTokenParaClipboard = async () => {
+    if (!pushToken) return;
+    await Clipboard.setStringAsync(pushToken);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2500);
+  };
+
+  // Teste rápido Aula 8: Daqui a 5 segundos (verificar handler e banner)
   const testarEmSegundos = async (segundos = 5) => {
     const dataDisparo = new Date(Date.now() + segundos * 1000);
     const mockConsulta = {
@@ -101,7 +172,7 @@ export default function NotificacoesScreen({ navigation }) {
   const testarConsulta3Minutos = async () => {
     const agora = Date.now();
     const dataConsulta = new Date(agora + 3 * 60 * 1000);
-    const dataLembrete = new Date(agora + 1 * 60 * 1000); // 1 minuto antes (dispara em 60s)
+    const dataLembrete = new Date(agora + 1 * 60 * 1000);
 
     const horaStr = `${String(dataConsulta.getHours()).padStart(2, '0')}:${String(dataConsulta.getMinutes()).padStart(2, '0')}`;
     const res = await agendar({
@@ -113,7 +184,7 @@ export default function NotificacoesScreen({ navigation }) {
 
     if (res?.lembrete?.agendado) {
       Alert.alert(
-        'Teste do Passo 3 Agendado',
+        'Teste Agendado',
         `Consulta criada para daqui a 3 min (${horaStr}). Lembrete agendado para disparar em 1 minuto!`
       );
     } else {
@@ -151,8 +222,86 @@ export default function NotificacoesScreen({ navigation }) {
         <Text style={styles.titulo}>Notificações</Text>
       </View>
 
+      {/* BLOCO 1: PUSH NOTIFICATIONS (Aula 9 - Passos 2 e 3) */}
       <View style={styles.bloco}>
-        <Text style={styles.rotulo}>Status da permissão</Text>
+        <Text style={styles.rotulo}>Push Notifications (Servidor da Clínica)</Text>
+        <View style={styles.card}>
+          <View style={styles.statusLinha}>
+            <Text style={styles.statusTexto}>
+              Status do Push:{' '}
+              <Text
+                style={{
+                  fontFamily: fonts.bold,
+                  color:
+                    pushStatus === 'ativo'
+                      ? colors.green
+                      : pushStatus === 'sem_permissao'
+                        ? colors.coral
+                        : colors.muted,
+                }}
+              >
+                {pushStatus === 'ativo'
+                  ? 'Ativo (Conectado)'
+                  : pushStatus === 'sem_permissao'
+                    ? 'Sem Permissão'
+                    : pushStatus === 'emulador'
+                      ? 'Indisponível no Emulador'
+                      : pushStatus === 'web'
+                        ? 'Indisponível na Web'
+                        : pushStatus}
+              </Text>
+            </Text>
+
+            {pushStatus === 'sem_permissao' && !canAskAgain && Platform.OS !== 'web' && (
+              <Pressable
+                onPress={() => Linking.openSettings()}
+                style={styles.btnPermissao}
+              >
+                <Text style={styles.btnPermissaoTexto}>Ajustes</Text>
+              </Pressable>
+            )}
+          </View>
+
+          {/* Texto explícito obrigatório da Aula 9 (Passo 3 - Item 15) */}
+          <View style={styles.boxAvisoPerda}>
+            <Text style={styles.avisoPerdaTexto}>
+              {pushStatus === 'ativo'
+                ? 'Você receberá avisos em tempo real da clínica sobre alterações de horário, atrasos ou cancelamentos na sua agenda.'
+                : 'Aviso: você continuará recebendo o lembrete agendado no aparelho, mas não avisos de alterações feitas pela clínica.'}
+            </Text>
+          </View>
+
+          {/* Exibição e cópia do Token para teste via terminal */}
+          {pushToken ? (
+            <View style={styles.tokenBox}>
+              <Text style={styles.tokenRotulo}>Token deste aparelho (Expo Push Service):</Text>
+              <Text style={styles.tokenValor} numberOfLines={2} selectable>
+                {pushToken}
+              </Text>
+              <Botao
+                titulo={copiado ? 'Token copiado com sucesso! ✓' : 'Copiar Push Token'}
+                variante="branco"
+                onPress={copiarTokenParaClipboard}
+                style={[styles.botaoContorno, { marginTop: 8 }]}
+              />
+              <Text style={styles.dicaTerminal}>
+                Para testar no terminal: node servidor/enviar-push.js "{pushToken.slice(0, 22)}..." "Aviso" "Corpo"
+              </Text>
+            </View>
+          ) : (
+            <Botao
+              titulo={registrandoPush ? 'Registrando aparelho...' : 'Obter e registrar token na API'}
+              onPress={sincronizarPushToken}
+              disabled={registrandoPush || pushStatus === 'emulador'}
+              style={{ marginTop: 4 }}
+            />
+          )}
+        </View>
+      </View>
+
+      {/* BLOCO 2: STATUS DA PERMISSÃO DO SISTEMA */}
+      <View style={styles.bloco}>
+        <Text style={styles.rotulo}>Permissão Geral de Notificações</Text>
         <View style={styles.card}>
           <View style={styles.statusLinha}>
             <Text style={styles.statusTexto}>
@@ -185,9 +334,9 @@ export default function NotificacoesScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Seção de testes rápidos para a aula */}
+      {/* BLOCO 3: TESTES RÁPIDOS DE LEMBRETE (Aula 8) */}
       <View style={styles.bloco}>
-        <Text style={styles.h2}>Testes de lembrete (Aula 8)</Text>
+        <Text style={styles.h2}>Testes de Lembrete Local (Aula 8)</Text>
         <View style={{ gap: 10 }}>
           <Botao
             titulo="Disparar lembrete em 5 segundos"
@@ -202,7 +351,7 @@ export default function NotificacoesScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Seção da lista de agendamentos pendentes */}
+      {/* BLOCO 4: AUDITORIA DAS AGENDADAS (getAllScheduledNotificationsAsync) */}
       <View style={styles.bloco}>
         <View style={styles.secaoTopo}>
           <Text style={styles.h2}>
@@ -292,7 +441,7 @@ const styles = StyleSheet.create({
   },
   bloco: {
     paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingTop: 18,
   },
   rotulo: {
     fontFamily: fonts.bold,
@@ -312,7 +461,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 20,
     padding: 16,
-    gap: 8,
+    gap: 10,
   },
   statusLinha: {
     flexDirection: 'row',
@@ -334,6 +483,42 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     fontSize: 12,
     color: colors.green,
+  },
+  boxAvisoPerda: {
+    backgroundColor: colors.bg,
+    borderRadius: 12,
+    padding: 12,
+  },
+  avisoPerdaTexto: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.muted,
+    lineHeight: 18,
+  },
+  tokenBox: {
+    backgroundColor: colors.bg,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 4,
+  },
+  tokenRotulo: {
+    fontFamily: fonts.bold,
+    fontSize: 11,
+    color: colors.muted,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  tokenValor: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    color: colors.green,
+  },
+  dicaTerminal: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.muted2,
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   sub: {
     fontFamily: fonts.body,
