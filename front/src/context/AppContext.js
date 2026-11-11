@@ -3,6 +3,7 @@ import { CONSULTAS_INICIAIS, MEDICOS, UNIDADE } from '../data/mock';
 import { recuperarSessao, limparSessao, salvarSessao } from '../services/sessao';
 import { apiFetch, post, put, del } from '../services/api';
 import { agendarLembrete, cancelarLembrete, sincronizarLembretes } from '../services/lembretes';
+import { manterRegistroAtualizado } from '../services/push';
 
 const AppContext = createContext(null);
 
@@ -22,6 +23,22 @@ export function AppProvider({ children }) {
   const [usuario, setUsuario] = useState(null);
   const [token, setToken] = useState(null);
   const [verificandoSessao, setVerificandoSessao] = useState(true);
+  const [statusPush, setStatusPush] = useState(null);
+
+  /**
+   * Mantém o push token sincronizado com a API a cada abertura/login (Aula 9 - Passo 2 Item 11)
+   */
+  const sincronizarPush = async () => {
+    const res = await manterRegistroAtualizado();
+    setStatusPush(res);
+    return res;
+  };
+
+  useEffect(() => {
+    if (token) {
+      sincronizarPush();
+    }
+  }, [token]);
 
   // Inicializa a verificação do cofre ao abrir o app:
   // Na Aula 6 (biometria), se existir um token salvo no SecureStore, ele NÃO
@@ -258,13 +275,15 @@ export function AppProvider({ children }) {
       sincronizarLembretesAgenda: async () => {
         return await sincronizarLembretes(consultas);
       },
+      statusPush,
+      sincronizarPush,
       // Guarda na consulta os sinais vitais já gravados no prontuário (Aula 7),
       // para a tela de detalhes exibir o resultado.
       // sinaisVitais: { frequenciaMedia, quantidadeLeituras, origem, registradoEm }
       registrarSinaisVitais: (id, sinaisVitais) =>
         setConsultas((atual) => atual.map((c) => (c.id === id ? { ...c, sinaisVitais } : c))),
     }),
-    [consultas, medicos, medicoSelecionado, usuario, token, verificandoSessao, fotoPacienteUri]
+    [consultas, medicos, medicoSelecionado, usuario, token, verificandoSessao, fotoPacienteUri, statusPush]
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

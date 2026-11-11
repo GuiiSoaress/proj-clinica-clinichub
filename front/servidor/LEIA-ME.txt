@@ -1,0 +1,24 @@
+Scripts de envio de push - Aula 9
+=================================
+
+Node puro, sem dependencia nenhuma. Copie esta pasta 'servidor' para a raiz
+do projeto da squad. Eles fazem o papel do SERVIDOR DA CLINICA nos testes.
+
+1) Enviar um push:
+
+    node servidor/enviar-push.js "ExponentPushToken[...]" "Titulo" "Corpo"
+
+   O token aparece na tela do app depois do registro.
+
+2) Conferir se foi mesmo entregue:
+
+    node servidor/consultar-recibo.js <id-do-recibo>
+
+   O id vem da resposta do envio.
+
+IMPORTANTE: "status": "ok" no envio significa apenas que o Expo ACEITOU a
+mensagem. A confirmacao de entrega esta no recibo - e e la que aparece o
+DeviceNotRegistered, que significa token morto.
+
+Push exige aparelho fisico e development build. Emulador nao recebe, e o
+Expo Go no Android nao suporta push remoto desde o SDK 53.

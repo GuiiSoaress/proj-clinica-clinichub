@@ -25,6 +25,11 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "extra": {
+      "eas": {
+        "projectId": "e6f47700-1c02-4bb7-b8ea-9be1a7fa2744"
+      }
+    },
     "plugins": [
       "expo-font",
       "expo-secure-store",

@@ -38,7 +38,8 @@ Expo SDK 54, React Native 0.81, React 19, `@react-navigation/stack`, `react-nati
   - `localizacao.js`: permissão, leitura de GPS (`Accuracy.Balanced`), erro `PermissaoNegada` com `canAskAgain`, cálculo de distância de Haversine (`distanciaKm`), `formatarDistancia` e estimativa de tempo.
   - `bluetooth.js`: interface isolada para BLE (`procurar`, `pararBusca`, `conectar`, `monitorarFrequencia`, `desconectar`). Controlado por `MODO_SIMULADO` e `FALHAS_SIMULADAS`.
   - `lembretes.js`: gerenciador de lembretes locais (Aula 8) com `configurarHandler`, `prepararCanal`, `garantirPermissao`, `agendarLembrete`, `cancelarLembrete`, mapa no AsyncStorage (`@clinichub:lembretes`) e navegação por toque (app aberto e fechado).
-- `servidor/auth-api.js`: servidor HTTP mock na porta 3001 com autenticação (`POST /login`), perfil, médicos, consultas (`/consultas`) e prontuário em memória (`POST /sinais-vitais`).
+  - `push.js`: serviço de push notifications remotas (Aula 9) com `obterTokenPush`, `registrarDispositivo` (`POST /dispositivos`), `manterRegistroAtualizado`, erro customizado `PushIndisponivel` e tratamento gracioso para emulador/web.
+- `servidor/auth-api.js`: servidor HTTP mock na porta 3001 com autenticação (`POST /login`), perfil, médicos, consultas (`/consultas`), prontuário em memória (`POST /sinais-vitais`) e dispositivos push (`/dispositivos`).
 - `src/data/mock.js`: especialidades, médicos, horários, unidade, paciente e consultas iniciais.
 - `src/theme.js`: `colors`, `fonts` e sombra da barra.
 
