@@ -62,4 +62,51 @@ export async function post(endpoint, corpo) {
   return dados;
 }
 
+/**
+ * Atalho para PUT com corpo JSON.
+ */
+export async function put(endpoint, corpo) {
+  const response = await apiFetch(endpoint, {
+    method: 'PUT',
+    body: JSON.stringify(corpo),
+  });
+
+  let dados = null;
+  try {
+    dados = await response.json();
+  } catch (e) {
+    // Resposta sem corpo JSON: segue com null.
+  }
+
+  if (!response.ok) {
+    const erro = new Error(dados?.erro || `Erro HTTP ${response.status}`);
+    erro.status = response.status;
+    throw erro;
+  }
+  return dados;
+}
+
+/**
+ * Atalho para DELETE (ex.: cancelar consulta na API).
+ */
+export async function del(endpoint) {
+  const response = await apiFetch(endpoint, {
+    method: 'DELETE',
+  });
+
+  let dados = null;
+  try {
+    dados = await response.json();
+  } catch (e) {
+    // Resposta sem corpo JSON: segue com null.
+  }
+
+  if (!response.ok) {
+    const erro = new Error(dados?.erro || `Erro HTTP ${response.status}`);
+    erro.status = response.status;
+    throw erro;
+  }
+  return dados;
+}
+
 export default BASE_URL;

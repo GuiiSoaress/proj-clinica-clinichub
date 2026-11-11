@@ -51,7 +51,7 @@ function json(res, status, corpo) {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   });
   res.end(texto);
 }
@@ -71,6 +71,40 @@ function lerCorpo(req) {
 
 // "Prontuário" em memória: registros de sinais vitais (Aula 7).
 const PRONTUARIO = [];
+
+// Base de consultas em memória (Aula 8).
+const CONSULTAS = [
+  {
+    id: 'c1',
+    medico: 'Dra Camila Rocha',
+    especialidade: 'Cardiologia',
+    data: new Date(2026, 7, 8).toISOString(),
+    hora: '14:30',
+    unidade: 'Clínica Centro',
+    status: 'proxima',
+    pacienteId: 1,
+  },
+  {
+    id: 'c2',
+    medico: 'Dr Roberto Mendes',
+    especialidade: 'Cardiologia',
+    data: new Date(2026, 7, 15).toISOString(),
+    hora: '09:00',
+    unidade: 'Clínica Centro',
+    status: 'proxima',
+    pacienteId: 1,
+  },
+  {
+    id: 'c3',
+    medico: 'Dra Ana Lima',
+    especialidade: 'Dermatologia',
+    data: new Date(2026, 7, 22).toISOString(),
+    hora: '16:00',
+    unidade: 'Clínica Norte',
+    status: 'proxima',
+    pacienteId: 1,
+  },
+];
 
 // Igual a lerCorpo, mas sem imprimir o conteúdo: usado em rotas que
 // recebem dado de saúde.
@@ -160,6 +194,64 @@ const servidor = http.createServer(async (req, res) => {
     PRONTUARIO.push(registro);
     console.log(`  sinal vital #${registro.id} gravado (consulta ${registro.consultaId}, origem ${registro.origem})`);
     return json(res, 201, registro);
+  }
+
+  // ----------------------------------------------------- CONSULTAS (Aula 8)
+  if (req.url === '/consultas' && req.method === 'GET') {
+    const usuario = usuarioDoToken(req);
+    if (!usuario) return json(res, 401, { erro: 'Token ausente ou inválido.' });
+    return json(res, 200, CONSULTAS);
+  }
+
+  if (req.url === '/consultas' && req.method === 'POST') {
+    const usuario = usuarioDoToken(req);
+    if (!usuario) return json(res, 401, { erro: 'Token ausente ou inválido.' });
+    const corpo = await lerCorpo(req);
+    if (!corpo || !corpo.medico || !corpo.hora) {
+      return json(res, 400, { erro: 'Dados de agendamento incompletos.' });
+    }
+    const novaConsulta = {
+      id: corpo.id || `c${Date.now()}`,
+      medico: corpo.medico,
+      especialidade: corpo.especialidade || '',
+      data: corpo.data || new Date().toISOString(),
+      hora: corpo.hora,
+      unidade: corpo.unidade || 'Clínica Centro',
+      status: 'proxima',
+      pacienteId: usuario.id,
+      criadoEm: new Date().toISOString(),
+    };
+    CONSULTAS.push(novaConsulta);
+    console.log(`  consulta agendada no servidor: ${novaConsulta.id} (${novaConsulta.medico} às ${novaConsulta.hora})`);
+    return json(res, 201, novaConsulta);
+  }
+
+  if (req.url.startsWith('/consultas/') && req.method === 'PUT') {
+    const usuario = usuarioDoToken(req);
+    if (!usuario) return json(res, 401, { erro: 'Token ausente ou inválido.' });
+    const id = req.url.split('/')[2];
+    const corpo = await lerCorpo(req);
+    const index = CONSULTAS.findIndex((c) => c.id === id);
+    if (index === -1) return json(res, 404, { erro: 'Consulta não encontrada.' });
+    CONSULTAS[index] = {
+      ...CONSULTAS[index],
+      ...corpo,
+      atualizadoEm: new Date().toISOString(),
+    };
+    console.log(`  consulta remarcada/atualizada no servidor: ${id}`);
+    return json(res, 200, CONSULTAS[index]);
+  }
+
+  if (req.url.startsWith('/consultas/') && req.method === 'DELETE') {
+    const usuario = usuarioDoToken(req);
+    if (!usuario) return json(res, 401, { erro: 'Token ausente ou inválido.' });
+    const id = req.url.split('/')[2];
+    const index = CONSULTAS.findIndex((c) => c.id === id);
+    if (index === -1) return json(res, 404, { erro: 'Consulta não encontrada.' });
+    CONSULTAS[index].status = 'cancelada';
+    CONSULTAS[index].canceladoEm = new Date().toISOString();
+    console.log(`  consulta cancelada no servidor via DELETE: ${id}`);
+    return json(res, 200, { sucesso: true, id, status: 'cancelada' });
   }
 
   json(res, 404, { erro: 'Rota não encontrada.' });

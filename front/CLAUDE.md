@@ -37,7 +37,8 @@ Expo SDK 54, React Native 0.81, React 19, `@react-navigation/stack`, `react-nati
   - `sessao.js`: persistência da sessão no `expo-secure-store` (`salvarSessao`, `recuperarSessao`, `obterToken`, `limparSessao`).
   - `localizacao.js`: permissão, leitura de GPS (`Accuracy.Balanced`), erro `PermissaoNegada` com `canAskAgain`, cálculo de distância de Haversine (`distanciaKm`), `formatarDistancia` e estimativa de tempo.
   - `bluetooth.js`: interface isolada para BLE (`procurar`, `pararBusca`, `conectar`, `monitorarFrequencia`, `desconectar`). Controlado por `MODO_SIMULADO` e `FALHAS_SIMULADAS`.
-- `servidor/auth-api.js`: servidor HTTP mock na porta 3001 com autenticação (`POST /login`), perfil, médicos e prontuário em memória (`POST /sinais-vitais`).
+  - `lembretes.js`: gerenciador de lembretes locais (Aula 8) com `configurarHandler`, `prepararCanal`, `garantirPermissao`, `agendarLembrete`, `cancelarLembrete`, mapa no AsyncStorage (`@clinichub:lembretes`) e navegação por toque (app aberto e fechado).
+- `servidor/auth-api.js`: servidor HTTP mock na porta 3001 com autenticação (`POST /login`), perfil, médicos, consultas (`/consultas`) e prontuário em memória (`POST /sinais-vitais`).
 - `src/data/mock.js`: especialidades, médicos, horários, unidade, paciente e consultas iniciais.
 - `src/theme.js`: `colors`, `fonts` e sombra da barra.
 
@@ -54,7 +55,8 @@ Origem: protótipo "ClinicHub — Telas do Paciente" (Figma em `../Docs/Link Fig
 
 - Coordenadas da clínica estão fixas em `src/services/localizacao.js` (geocoding visto na Aula 5; mapa interativo previsto para a Aula 12 conforme ADR 001).
 - Foto de perfil guarda a URI local no dispositivo (upload para servidor via POST é extensão futura).
-- "Dados pessoais" e "Notificações" em Perfil mostram aviso.
+- "Dados pessoais" em Perfil mostra aviso.
+- Notificações locais implementadas na Aula 8 com tela de auditoria e testes (`src/screens/Notificacoes/NotificacoesScreen.js`).
 - Bluetooth roda em modo simulado no Expo Go; modo real exige development build nativo (guia em `../Docs/004-bluetooth-modo-real.md`).
 
 ## Ao adicionar telas

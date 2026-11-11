@@ -61,7 +61,7 @@ export default function Perfil({ navigation }) {
         <Item titulo="Como chegar na clínica" onPress={() => navigation.navigate('ComoChegar')} />
         <Item titulo="Cadastrar médico" onPress={() => navigation.navigate('CadastroEdicaoMedico')} />
         <Item titulo="Dados pessoais" onPress={emBreve('Dados pessoais')} />
-        <Item titulo="Notificações" onPress={emBreve('Notificações')} />
+        <Item titulo="Notificações e Lembretes" onPress={() => navigation.navigate('Notificacoes')} />
         <Pressable accessibilityRole="button" onPress={bloquearSessao} style={styles.bloquear}>
           <Icon name="fingerprint" size={20} color={colors.green} />
           <Text style={styles.bloquearTexto}>Bloquear sessão (entrar com biometria)</Text>

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useMemo, useState, useEffect } from 'react';
 import { CONSULTAS_INICIAIS, MEDICOS, UNIDADE } from '../data/mock';
 import { recuperarSessao, limparSessao, salvarSessao } from '../services/sessao';
-import { apiFetch } from '../services/api';
+import { apiFetch, post, put, del } from '../services/api';
+import { agendarLembrete, cancelarLembrete, sincronizarLembretes } from '../services/lembretes';
 
 const AppContext = createContext(null);
 
@@ -172,7 +173,7 @@ export function AppProvider({ children }) {
       consultas,
       medicoSelecionado,
       setMedicoSelecionado,
-      agendar: ({ medico, data, hora }) => {
+      agendar: async ({ medico, data, hora, opcoesLembrete = {} }) => {
         const nova = {
           id: `c${Date.now()}`,
           medico: medico.nome,
@@ -182,11 +183,81 @@ export function AppProvider({ children }) {
           unidade: UNIDADE.nome,
           status: 'proxima',
         };
-        setConsultas((atual) => [...atual, nova]);
-        return nova.id;
+
+        // 1. Ao AGENDAR: grava primeiro no servidor (POST do api.js)
+        try {
+          await post('/consultas', {
+            ...nova,
+            data: nova.data instanceof Date ? nova.data.toISOString() : nova.data,
+          });
+        } catch (err) {
+          console.warn('Não foi possível registrar consulta na API (mantendo no app local):', err?.message);
+        }
+
+        // 2. Só depois agenda o lembrete (Passo 3 - Item 12)
+        const resultadoLembrete = await agendarLembrete(nova, opcoesLembrete);
+        const consultaComLembrete = { ...nova, lembrete: resultadoLembrete };
+
+        setConsultas((atual) => [...atual, consultaComLembrete]);
+        return { id: nova.id, consulta: consultaComLembrete, lembrete: resultadoLembrete };
       },
-      cancelar: (id) =>
-        setConsultas((atual) => atual.map((c) => (c.id === id ? { ...c, status: 'cancelada' } : c))),
+
+      remarcar: async (id, { data, hora, opcoesLembrete = {} }) => {
+        // 1. Ao REMARCAR: atualiza no servidor via PUT
+        try {
+          await put(`/consultas/${id}`, {
+            data: data instanceof Date ? data.toISOString() : data,
+            hora,
+          });
+        } catch (err) {
+          console.warn('Não foi possível remarcar consulta na API (mantendo no app local):', err?.message);
+        }
+
+        let consultaAtualizada = null;
+        let resultadoLembrete = null;
+
+        setConsultas((atual) =>
+          atual.map((c) => {
+            if (c.id === id) {
+              consultaAtualizada = { ...c, data, hora };
+              return consultaAtualizada;
+            }
+            return c;
+          })
+        );
+
+        // 2. Chama agendarLembrete de novo com a nova data (Passo 3 - Item 14)
+        // Como agendarLembrete cancela o lembrete anterior automaticamente, não acumula avisos.
+        if (consultaAtualizada) {
+          resultadoLembrete = await agendarLembrete(consultaAtualizada, opcoesLembrete);
+          setConsultas((atual) =>
+            atual.map((c) => (c.id === id ? { ...c, lembrete: resultadoLembrete } : c))
+          );
+        }
+
+        return { id, consulta: consultaAtualizada, lembrete: resultadoLembrete };
+      },
+
+      cancelar: async (id) => {
+        // 1. Ao CANCELAR a consulta: deleta na API
+        try {
+          await del(`/consultas/${id}`);
+        } catch (err) {
+          console.warn('Não foi possível cancelar consulta na API (mantendo no app local):', err?.message);
+        }
+
+        // 2. Chama cancelarLembrete depois do DELETE na API (Passo 3 - Item 15)
+        await cancelarLembrete(id);
+
+        // 3. Atualiza status da consulta no estado local
+        setConsultas((atual) =>
+          atual.map((c) => (c.id === id ? { ...c, status: 'cancelada', lembrete: null } : c))
+        );
+      },
+
+      sincronizarLembretesAgenda: async () => {
+        return await sincronizarLembretes(consultas);
+      },
       // Guarda na consulta os sinais vitais já gravados no prontuário (Aula 7),
       // para a tela de detalhes exibir o resultado.
       // sinaisVitais: { frequenciaMedia, quantidadeLeituras, origem, registradoEm }

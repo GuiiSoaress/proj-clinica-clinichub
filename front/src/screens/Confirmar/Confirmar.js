@@ -29,18 +29,33 @@ function montarSemanas(ano, mes) {
   return semanas;
 }
 
-export default function Confirmar({ navigation }) {
-  const { medicoSelecionado, agendar } = useApp();
+export default function Confirmar({ navigation, route }) {
+  const { medicoSelecionado, agendar, remarcar, consultas } = useApp();
+  const consultaRemarcar = route.params?.remarcarId
+    ? consultas.find((c) => c.id === route.params.remarcarId)
+    : null;
+
+  const medicoAtual =
+    medicoSelecionado ||
+    (consultaRemarcar
+      ? {
+          nome: consultaRemarcar.medico,
+          especialidade: consultaRemarcar.especialidade,
+          crm: 'Clinica',
+        }
+      : null);
+
   const hoje = useMemo(() => inicioDoDia(new Date()), []);
   const [mesRef, setMesRef] = useState(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
   const [dataSel, setDataSel] = useState(hoje);
   const [horaSel, setHoraSel] = useState(HORARIOS[1]);
+  const [salvando, setSalvando] = useState(false);
 
   const semanas = useMemo(() => montarSemanas(mesRef.getFullYear(), mesRef.getMonth()), [mesRef]);
   const podeVoltarMes = mesRef > new Date(hoje.getFullYear(), hoje.getMonth(), 1);
   const mudarMes = (delta) => setMesRef(new Date(mesRef.getFullYear(), mesRef.getMonth() + delta, 1));
 
-  if (!medicoSelecionado) {
+  if (!medicoAtual) {
     // Acesso direto sem médico escolhido: volta para a seleção.
     return (
       <Screen navigation={navigation}>
@@ -52,30 +67,53 @@ export default function Confirmar({ navigation }) {
     );
   }
 
-  const confirmar = () => {
-    const id = agendar({ medico: medicoSelecionado, data: dataSel, hora: horaSel });
-    navigation.replace('Confirmada', { id });
+  const confirmar = async () => {
+    setSalvando(true);
+    try {
+      if (consultaRemarcar) {
+        const res = await remarcar(consultaRemarcar.id, { data: dataSel, hora: horaSel });
+        navigation.replace('Confirmada', {
+          id: consultaRemarcar.id,
+          lembrete: res?.lembrete,
+          remarcada: true,
+        });
+      } else {
+        const res = await agendar({ medico: medicoAtual, data: dataSel, hora: horaSel });
+        navigation.replace('Confirmada', {
+          id: res.id,
+          lembrete: res?.lembrete,
+        });
+      }
+    } finally {
+      setSalvando(false);
+    }
   };
 
   return (
     <Screen
       navigation={navigation}
-      footer={<Botao titulo="Confirmar agendamento" onPress={confirmar} />}
+      footer={
+        <Botao
+          titulo={salvando ? 'Salvando...' : consultaRemarcar ? 'Confirmar nova data' : 'Confirmar agendamento'}
+          onPress={confirmar}
+          disabled={salvando}
+        />
+      }
     >
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => navigation.goBack()} style={styles.voltar}>
           <Icon name="back" size={22} color={colors.ink} />
         </Pressable>
-        <Text style={styles.titulo}>Confirmar agendamento</Text>
+        <Text style={styles.titulo}>{consultaRemarcar ? 'Remarcar consulta' : 'Confirmar agendamento'}</Text>
       </View>
 
       <View style={styles.bloco}>
         <Text style={styles.rotulo}>Médico selecionado</Text>
         <View style={styles.cardMedico}>
-          <MedicoAvatar nome={medicoSelecionado.nome} fotoUri={medicoSelecionado.fotoUri} size={52} />
+          <MedicoAvatar nome={medicoAtual.nome} fotoUri={medicoAtual.fotoUri} size={52} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.medicoNome}>{medicoSelecionado.nome}</Text>
-            <Text style={styles.medicoSub}>{medicoSelecionado.especialidade} - CRM {medicoSelecionado.crm}</Text>
+            <Text style={styles.medicoNome}>{medicoAtual.nome}</Text>
+            <Text style={styles.medicoSub}>{medicoAtual.especialidade} - CRM {medicoAtual.crm}</Text>
           </View>
         </View>
       </View>
