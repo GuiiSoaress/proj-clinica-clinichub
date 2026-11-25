@@ -114,6 +114,20 @@ export default function Icon({ name, size = 24, color = '#1d2b28', strokeWidth =
           <Circle cx="18" cy="11" r="2" />
         </Svg>
       );
+    case 'refresh':
+      return (
+        <Svg {...common} strokeWidth={2}>
+          <Path d="M21 12a9 9 0 0 1-15.3 6.4L3 16M3 12a9 9 0 0 1 15.3-6.4L21 8" />
+          <Path d="M21 3v5h-5M3 21v-5h5" />
+        </Svg>
+      );
+    case 'alertTriangle':
+      return (
+        <Svg {...common} strokeWidth={2}>
+          <Path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+          <Path d="M12 9v4M12 17h.01" />
+        </Svg>
+      );
     default:
       return null;
   }

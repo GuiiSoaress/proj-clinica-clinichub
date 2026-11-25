@@ -13,7 +13,7 @@ Expo SDK 54, React Native 0.81, React 19, `@react-navigation/stack`, `react-nati
 
 - [App.js](App.js): carrega as fontes, envolve tudo em `SafeAreaProvider` e `AppProvider`. Gerencia navegação condicional por token:
   - Públicas: `LoginBiometrico`, `Login`.
-  - Privadas: `Inicio`, `Agendar`, `Confirmar`, `Confirmada`, `Consultas`, `Perfil`, `SinaisVitais`, `ComoChegar`, `CadastroEdicaoMedico`.
+  - Privadas: `Inicio`, `Agendar`, `Confirmar`, `Confirmada`, `Consultas`, `Perfil`, `SinaisVitais`, `ComoChegar`, `CadastroEdicaoMedico`, `Notificacoes`, `SincronizarAgenda`.
 - `src/screens/<Tela>/<Tela>.js`:
   - `Login/LoginBiometrico.js` → checa sensor, biometria cadastrada e `obterToken()`; se não houver token salvo redireciona para `Login`, caso contrário oferece desbloqueio biométrico mantendo sempre visível o link "Entrar com e-mail e senha".
   - `Login/Login.js` → autentica via API e salva token no SecureStore.
@@ -21,7 +21,8 @@ Expo SDK 54, React Native 0.81, React 19, `@react-navigation/stack`, `react-nati
   - `Clinica/ComoChegar.js` → exibe o endereço da clínica e calcula distância em linha reta + estimativa de tempo consumindo `src/services/localizacao.js`.
   - `Medico/CadastroEdicaoMedicoScreen.js` → cadastro e edição de médico usando `MedicoForm.js` com captura de foto de perfil via câmera.
   - Fluxo de agendamento: `Agendar` → `Confirmar` → `Confirmada` (recebe `route.params.id`).
-  - `Consultas` (Minhas Consultas) é aberta pelo Início/Perfil; os cards levam a `Confirmada`.
+  - `Consultas` (Minhas Consultas) é aberta pelo Início/Perfil; os cards levam a `Confirmada`. Para o perfil `recepcao`, exibe banner para `SincronizarAgenda`.
+  - `Agenda/SincronizarAgenda.js` → tela restrita à recepção para sincronizar a agenda da clínica (`GET /agenda/consultas`) e detectar conflitos sem bloquear a UI usando `useTarefaPesada`, `processamento.js` e cache em `AsyncStorage`.
   - `Confirmada`: detalhes da consulta; para consultas `proxima`, exibe o card de **Sinais vitais** e botão para importar ou medir novamente.
   - `Consulta/SinaisVitais.js`: tela de leitura de frequência cardíaca via BLE (importa média para o prontuário via `post('/sinais-vitais')` ou permite digitação manual).
   - `Perfil` → permite tirar foto de perfil via câmera, bloquear a sessão (para testar desbloqueio biométrico) ou "Sair" (limpa a sessão do cofre e desloga).
@@ -33,13 +34,16 @@ Expo SDK 54, React Native 0.81, React 19, `@react-navigation/stack`, `react-nati
   - `ConsultaCard.js`: card de consulta (variantes `home` e `lista`).
 - `src/context/AppContext.js`: estado global (`consultas`, `medicos`, `medicoSelecionado`, `usuario`, `token`, `agendar`, `cancelar`, `salvarMedico`, `atualizarFotoUsuario`, `destrancarSessao`, `bloquearSessao`, `registrarSinaisVitais`, `login`, `logout`) e helpers de data.
 - `src/services/`:
-  - `api.js`: `BASE_URL` (`http://localhost:3001`), `apiFetch` (com Bearer token) e helper `post(endpoint, corpo)`.
+  - `api.js`: `BASE_URL` (`http://localhost:3001`), `apiFetch` (com Bearer token) e helpers `get`, `post`, `put` e `del`.
+  - `processamento.js`: detecção de conflitos da agenda (`conflita`, `detectarConflitosIngenuo`, `detectarConflitosOrdenado`, `cederAVez`, `criarSinalDeCancelamento`, `processarEmFatias`, `detectarConflitos`).
+- `src/hooks/`:
+  - `useTarefaPesada.js`: executa tarefas cooperativas com estados `rodando`, `progresso`, `etapa`, `resultado`, `erro`, `cancelada`, proteção contra desmontagem e cancelamento automático no cleanup.
   - `sessao.js`: persistência da sessão no `expo-secure-store` (`salvarSessao`, `recuperarSessao`, `obterToken`, `limparSessao`).
   - `localizacao.js`: permissão, leitura de GPS (`Accuracy.Balanced`), erro `PermissaoNegada` com `canAskAgain`, cálculo de distância de Haversine (`distanciaKm`), `formatarDistancia` e estimativa de tempo.
   - `bluetooth.js`: interface isolada para BLE (`procurar`, `pararBusca`, `conectar`, `monitorarFrequencia`, `desconectar`). Controlado por `MODO_SIMULADO` e `FALHAS_SIMULADAS`.
   - `lembretes.js`: gerenciador de lembretes locais (Aula 8) com `configurarHandler`, `prepararCanal`, `garantirPermissao`, `agendarLembrete`, `cancelarLembrete`, mapa no AsyncStorage (`@clinichub:lembretes`) e navegação por toque (app aberto e fechado).
   - `push.js`: serviço de push notifications remotas (Aula 9) com `obterTokenPush`, `registrarDispositivo` (`POST /dispositivos`), `manterRegistroAtualizado`, erro customizado `PushIndisponivel` e tratamento gracioso para emulador/web.
-- `servidor/auth-api.js`: servidor HTTP mock na porta 3001 com autenticação (`POST /login`), perfil, médicos, consultas (`/consultas`), prontuário em memória (`POST /sinais-vitais`) e dispositivos push (`/dispositivos`).
+- `servidor/auth-api.js`: servidor HTTP mock na porta 3001 com autenticação (`POST /login`), perfil, médicos, consultas (`/consultas`), agenda volumosa restrita à recepção (`GET /agenda/consultas`), prontuário em memória (`POST /sinais-vitais`) e dispositivos push (`/dispositivos`).
 - `src/data/mock.js`: especialidades, médicos, horários, unidade, paciente e consultas iniciais.
 - `src/theme.js`: `colors`, `fonts` e sombra da barra.
 

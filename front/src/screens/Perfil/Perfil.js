@@ -29,6 +29,7 @@ export default function Perfil({ navigation }) {
   const nomeExibicao = usuario ? usuario.nome : PACIENTE.nome;
   const papelExibicao = usuario && usuario.perfil ? usuario.perfil : PACIENTE.papel;
   const fotoExibicao = usuario?.fotoUri || fotoPacienteUri || null;
+  const ehRecepcao = usuario?.perfil === 'recepcao';
 
   return (
     <Screen navigation={navigation} tab="Perfil" contentStyle={{ paddingTop: 0 }}>
@@ -58,6 +59,9 @@ export default function Perfil({ navigation }) {
 
       <View style={styles.lista}>
         <Item titulo="Minhas Consultas" onPress={() => navigation.navigate('Consultas')} />
+        {ehRecepcao && (
+          <Item titulo="Sincronizar agenda da clínica" onPress={() => navigation.navigate('SincronizarAgenda')} />
+        )}
         <Item titulo="Como chegar na clínica" onPress={() => navigation.navigate('ComoChegar')} />
         <Item titulo="Cadastrar médico" onPress={() => navigation.navigate('CadastroEdicaoMedico')} />
         <Item titulo="Dados pessoais" onPress={emBreve('Dados pessoais')} />
