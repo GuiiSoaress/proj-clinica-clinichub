@@ -1,9 +1,27 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { recuperarSessao } from './sessao';
 
 // Endereço base da API de Autenticação (porta 3001 conforme a Demo)
-// Em dispositivo físico (Expo Go), usa o IP da máquina na rede local; no navegador web usa localhost.
-const HOST_API = Platform.OS === 'web' ? 'localhost' : '10.110.12.28';
+// No navegador web usa localhost; no dispositivo/emulador tenta extrair o IP do servidor Expo
+// (hostUri) e usa o IP local da máquina como fallback.
+function descobrirHostApi() {
+  if (Platform.OS === 'web') return 'localhost';
+
+  const hostUri =
+    Constants.expoConfig?.hostUri ||
+    Constants.manifest2?.extra?.expoGo?.debuggerHost ||
+    Constants.manifest?.debuggerHost;
+
+  if (typeof hostUri === 'string' && hostUri.includes(':')) {
+    const host = hostUri.split(':')[0].trim();
+    if (host) return host;
+  }
+
+  return '10.110.12.49';
+}
+
+const HOST_API = descobrirHostApi();
 const BASE_URL = `http://${HOST_API}:3001`;
 
 /**
@@ -32,6 +50,30 @@ export async function apiFetch(endpoint, options = {}) {
   });
 
   return response;
+}
+
+/**
+ * Atalho para GET autenticado (usa o apiFetch, então já leva o token).
+ * Lança um Error com a mensagem da API quando a resposta não é 2xx.
+ */
+export async function get(endpoint) {
+  const response = await apiFetch(endpoint, {
+    method: 'GET',
+  });
+
+  let dados = null;
+  try {
+    dados = await response.json();
+  } catch (e) {
+    // Resposta sem corpo JSON: segue com null.
+  }
+
+  if (!response.ok) {
+    const erro = new Error(dados?.erro || `Erro HTTP ${response.status}`);
+    erro.status = response.status;
+    throw erro;
+  }
+  return dados;
 }
 
 /**

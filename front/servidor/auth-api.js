@@ -24,8 +24,11 @@
 
 const http = require('http');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const { gerarAgendaClinica } = require('./gerar-agenda-clinica');
 
-const PORTA = 3001;
+const PORTA = Number(process.env.PORT) || 3001;
 
 // "Banco" de usuarios da clinica. Em producao: hash da senha, nunca o texto.
 const USUARIOS = [
@@ -109,6 +112,24 @@ const CONSULTAS = [
 // Dispositivos registrados para Push Notifications (Aula 9).
 // Mapeamento: token -> { token, usuarioId, usuarioNome, plataforma, registradoEm }
 const DISPOSITIVOS = new Map();
+
+// Base volumosa da agenda da clínica para conferência de conflitos pela recepção (Aula 10).
+function carregarAgendaClinica() {
+  const caminhoDb = path.join(__dirname, '..', 'mockup', 'db_clinica.json');
+  try {
+    if (fs.existsSync(caminhoDb)) {
+      const db = JSON.parse(fs.readFileSync(caminhoDb, 'utf8'));
+      if (Array.isArray(db.consultas) && db.consultas.length > 0) {
+        return db.consultas;
+      }
+    }
+  } catch (err) {
+    console.warn('Falha ao ler db_clinica.json; gerando agenda em memória:', err.message);
+  }
+  return gerarAgendaClinica({ total: 4000 });
+}
+
+const AGENDA_CLINICA = carregarAgendaClinica();
 
 // Igual a lerCorpo, mas sem imprimir o conteúdo: usado em rotas que
 // recebem dado de saúde.
@@ -256,6 +277,16 @@ const servidor = http.createServer(async (req, res) => {
     CONSULTAS[index].canceladoEm = new Date().toISOString();
     console.log(`  consulta cancelada no servidor via DELETE: ${id}`);
     return json(res, 200, { sucesso: true, id, status: 'cancelada' });
+  }
+
+  // ------------------------------------------------------- AGENDA DA CLÍNICA (Aula 10)
+  if (req.url === '/agenda/consultas' && req.method === 'GET') {
+    const usuario = usuarioDoToken(req);
+    if (!usuario) return json(res, 401, { erro: 'Token ausente ou inválido.' });
+    if (usuario.perfil !== 'recepcao') {
+      return json(res, 403, { erro: 'Acesso restrito à recepção.' });
+    }
+    return json(res, 200, AGENDA_CLINICA);
   }
 
   // -------------------------------------------------- DISPOSITIVOS PUSH (Aula 9)

@@ -14,8 +14,9 @@ const ABAS = [
 ];
 
 export default function Consultas({ navigation }) {
-  const { consultas, sincronizarLembretesAgenda } = useApp();
+  const { consultas, sincronizarLembretesAgenda, usuario } = useApp();
   const [aba, setAba] = useState('proxima');
+  const ehRecepcao = usuario?.perfil === 'recepcao';
   const atual = ABAS.find((a) => a.chave === aba);
   const lista = consultas.filter((c) => c.status === aba).sort((a, b) => a.data - b.data);
 
@@ -50,6 +51,23 @@ export default function Consultas({ navigation }) {
         })}
       </View>
 
+      {ehRecepcao && (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => navigation.navigate('SincronizarAgenda')}
+          style={({ pressed }) => [styles.bannerRecepcao, { opacity: pressed ? 0.85 : 1 }]}
+        >
+          <View style={styles.bannerIcone}>
+            <Icon name="refresh" size={18} color={colors.green} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.bannerTitulo}>Conferir conflitos da agenda</Text>
+            <Text style={styles.bannerSub}>Sincronização completa da clínica</Text>
+          </View>
+          <Text style={styles.bannerSeta}>›</Text>
+        </Pressable>
+      )}
+
       <View style={styles.lista}>
         {lista.length === 0 ? (
           <Text style={styles.vazio}>{atual.vazio}</Text>
@@ -72,6 +90,28 @@ const styles = StyleSheet.create({
   abaAtiva: { backgroundColor: colors.green },
   abaTexto: { fontFamily: fonts.medium, fontSize: 14, color: colors.muted },
   abaTextoAtivo: { fontFamily: fonts.bold, color: colors.white },
+  bannerRecepcao: {
+    marginHorizontal: 24,
+    marginTop: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    backgroundColor: colors.mint,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  bannerIcone: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bannerTitulo: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
+  bannerSub: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
+  bannerSeta: { fontSize: 20, color: colors.green },
   lista: { paddingHorizontal: 24, paddingTop: 20, gap: 12 },
   vazio: { fontFamily: fonts.body, fontSize: 14, color: colors.muted },
 });

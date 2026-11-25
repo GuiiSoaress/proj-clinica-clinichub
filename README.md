@@ -52,7 +52,7 @@ alguns destes itens.
 - [ ] Integração inicial com os endpoints de usuários e login, via HTTPS
 - [ ] Identificação dos recursos que dependem de Web Services de terceiros
 - [x] Notificação local/push como lembrete de consulta agendada (Aulas 8 e 9)
-- [ ] Processamento multithread para tarefas pesadas não travarem a interface
+- [x] Processamento multithread para tarefas pesadas não travarem a interface
 - [ ] Sincronização da agenda em segundo plano (tarefa/serviço background)
 - [ ] Mapa exibindo a localização da clínica dentro do aplicativo
 - [ ] Confirmação/cancelamento de consulta enviado por SMS
@@ -78,6 +78,7 @@ alguns destes itens.
 | Cadastro/Edição de Médico | Cadastro e edição de dados do médico com foto de perfil via câmera (`expo-image-picker`) | Agendar (volta) |
 | Login Biométrico | Destranca o token salvo no cofre do dispositivo via digital/biometria (`expo-local-authentication`) | Início, Login (e-mail/senha) |
 | Como Chegar | Exibe endereço da clínica e calcula distância em linha reta + tempo estimado via GPS (`expo-location`) | — |
+| Sincronizar Agenda (Recepção) | Sincroniza a agenda da clínica e detecta conflitos de horários em fatias sem travar a interface (restrita à recepção) | — |
 | [adicionar novas telas conforme implementadas] | | |
 
 ## Tecnologias
@@ -193,6 +194,24 @@ Exemplo de carga enviada pelo servidor da clínica (`POST https://exp.host/--/ap
 - **Lembrete de 1 hora antes:** Fica agendado localmente no próprio aparelho (`src/services/lembretes.js`). Vantagem: funciona offline (mesmo sem internet ou em modo avião).
 - **Avisos dinâmicos da clínica:** Chegam via Push Notifications disparados pelo servidor (`src/services/push.js` e scripts de envio). Vantagem: permite que a recepção avise em tempo real sobre atrasos, cancelamentos ou alterações na agenda.
 - **Degradação graciosa:** Se o aparelho for um emulador (`Device.isDevice === false`) ou a permissão for negada, o aplicativo continua operando 100% sem falhas, avisando claramente na interface que o paciente continuará recebendo o lembrete local, mas não avisos dinâmicos da clínica.
+
+### Processamento Multithread — Detecção de Conflitos da Agenda (Aula 10)
+
+A conferência de conflitos de horários da clínica foi implementada como uma funcionalidade restrita ao perfil `recepcao` (`GET /agenda/consultas`, `src/services/processamento.js`, `src/hooks/useTarefaPesada.js` e `src/screens/Agenda/SincronizarAgenda.js`), evitando qualquer bloqueio da thread de UI.
+
+#### Medições comparativas (`node front/servidor/medir-processamento.js`, 4.000 consultas / 10 médicos / 2.175 conflitos)
+
+| Estratégia | Tempo medido | Comparações | Atualizações de progresso | Observação |
+|---|---|---|---|---|
+| `detectarConflitosIngenuo` ($O(n^2)$ síncrono) | **325 ms** | **7.998.000** ($n(n-1)/2$) | 0 (bloqueante) | Congela a thread principal durante o cálculo |
+| `detectarConflitosOrdenado` (`Map` + ordenação + sweep-line) | **9 ms** | **6.161** | 0 (síncrono) | ~99,92% menos comparações; saída 100% idêntica à ingênua |
+| `detectarConflitos` fatiado (`tamanhoFatia = 100`) | **1.268 ms** | **6.161** | 50 | Fatia pequena demais desperdiça tempo com dezenas de `setTimeout(0)` |
+| `detectarConflitos` fatiado (`tamanhoFatia = 500`, **escolhido**) | **211 ms** | **6.161** | 18 | Melhor equilíbrio entre fluidez da UI, feedback de progresso e tempo total |
+| `detectarConflitos` fatiado (`tamanhoFatia = 5000`) | **141 ms** | **6.161** | 11 | Agrupa tudo em uma única fatia; volta a concentrar trabalho síncrono em bases maiores |
+
+- **Tamanho de fatia escolhido (`500` itens + `cederAVez()` por médico):** com `100` itens o overhead de agendar dezenas de macrotasks elevou o tempo total para `1.268 ms`; com `5000` itens todo o agrupamento ocorre de uma só vez sem ceder à UI. `500` itens mantém cada bloco rápido, entrega 18 atualizações reais para a barra de progresso e permite cancelamento imediato pelo botão **Cancelar verificação** ou ao sair da tela.
+- **Sobre `react-native-worklets`:** `react-native-worklets` seria justificável no desafio se precisássemos processar fluxos contínuos em alta frequência fora da JS thread (como quadros de câmera em tempo real ou streams contínuos de sensores BLE a dezenas de Hz). Para a verificação sob demanda de 4.000 consultas, o algoritmo $O(n \log n)$ agrupado por médico combinado ao fatiamento cooperativo com `setTimeout(0)` já executa em ~211 ms sem adicionar dependências nativas.
+- **Preparação para a Aula 11 (Background):** `detectarConflitos` foi escrita em JavaScript puro em `src/services/processamento.js` (sem dependências de React ou UI) e recebe `onProgresso` e `sinal` opcionais, permitindo executar exatamente a mesma lógica em segundo plano quando não houver tela montada.
 
 ## Testes
 

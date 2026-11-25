@@ -23,6 +23,7 @@ import SinaisVitais from './src/screens/Consulta/SinaisVitais';
 import ComoChegar from './src/screens/Clinica/ComoChegar';
 import CadastroEdicaoMedicoScreen from './src/screens/Medico/CadastroEdicaoMedicoScreen';
 import NotificacoesScreen from './src/screens/Notificacoes/NotificacoesScreen';
+import SincronizarAgenda from './src/screens/Agenda/SincronizarAgenda';
 
 // Passo 2 - Item 4: chamar configurarHandler() uma vez, no topo do App.js
 import {
@@ -132,6 +133,7 @@ function RootNavigator() {
             <Stack.Screen name="ComoChegar" component={ComoChegar} />
             <Stack.Screen name="CadastroEdicaoMedico" component={CadastroEdicaoMedicoScreen} />
             <Stack.Screen name="Notificacoes" component={NotificacoesScreen} />
+            <Stack.Screen name="SincronizarAgenda" component={SincronizarAgenda} />
           </>
         ) : (
           // === ROTAS PÚBLICAS (Usuário Deslogado ou Sessão Trancada) ===
