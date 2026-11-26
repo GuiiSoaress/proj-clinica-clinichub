@@ -5,6 +5,7 @@ import Icon, { MiniMap } from '../../components/Icons';
 import { Screen, Botao, MedicoAvatar } from '../../components/Layout';
 import { useApp, MESES } from '../../context/AppContext';
 import { HORARIOS, UNIDADE } from '../../data/mock';
+import { validarAgendamento } from '../../regras';
 import { colors, fonts } from '../../theme';
 
 const DIAS_SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
@@ -30,7 +31,7 @@ function montarSemanas(ano, mes) {
 }
 
 export default function Confirmar({ navigation, route }) {
-  const { medicoSelecionado, agendar, remarcar, consultas } = useApp();
+  const { medicoSelecionado, setMedicoSelecionado, agendar, remarcar, consultas } = useApp();
   const consultaRemarcar = route.params?.remarcarId
     ? consultas.find((c) => c.id === route.params.remarcarId)
     : null;
@@ -50,6 +51,7 @@ export default function Confirmar({ navigation, route }) {
   const [dataSel, setDataSel] = useState(hoje);
   const [horaSel, setHoraSel] = useState(HORARIOS[1]);
   const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState(null);
 
   const semanas = useMemo(() => montarSemanas(mesRef.getFullYear(), mesRef.getMonth()), [mesRef]);
   const podeVoltarMes = mesRef > new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -68,6 +70,14 @@ export default function Confirmar({ navigation, route }) {
   }
 
   const confirmar = async () => {
+    // Regra pura (src/regras.js): barra formulário incompleto e horário que já passou.
+    // Antes o app aceitava "hoje às 12:00" mesmo depois do meio-dia.
+    const erroValidacao = validarAgendamento({ medico: medicoAtual, data: dataSel, hora: horaSel });
+    if (erroValidacao) {
+      setErro(erroValidacao);
+      return;
+    }
+    setErro(null);
     setSalvando(true);
     try {
       if (consultaRemarcar) {
@@ -83,6 +93,8 @@ export default function Confirmar({ navigation, route }) {
           id: res.id,
           lembrete: res?.lembrete,
         });
+        // O próximo agendamento começa do zero (antes o médico anterior ficava marcado).
+        setMedicoSelecionado(null);
       }
     } finally {
       setSalvando(false);
@@ -161,7 +173,10 @@ export default function Confirmar({ navigation, route }) {
                     disabled={passado}
                     accessibilityRole="button"
                     accessibilityState={{ selected: ativo, disabled: passado }}
-                    onPress={() => setDataSel(c.data)}
+                    onPress={() => {
+                      setDataSel(c.data);
+                      setErro(null);
+                    }}
                     style={styles.celula}
                   >
                     <View style={[styles.diaBolha, ativo && styles.diaBolhaAtiva]}>
@@ -173,6 +188,12 @@ export default function Confirmar({ navigation, route }) {
             </View>
           ))}
 
+          {erro && (
+            <Text testID="mensagem-erro" style={styles.erro}>
+              {erro}
+            </Text>
+          )}
+
           <View style={styles.horarios}>
             {HORARIOS.map((h) => {
               const ativo = h === horaSel;
@@ -182,7 +203,10 @@ export default function Confirmar({ navigation, route }) {
                   testID={`horario-${h}`}
                   accessibilityRole="button"
                   accessibilityState={{ selected: ativo }}
-                  onPress={() => setHoraSel(h)}
+                  onPress={() => {
+                    setHoraSel(h);
+                    setErro(null);
+                  }}
                   style={[styles.horario, ativo && styles.horarioAtivo]}
                 >
                   <Text style={[styles.horarioTexto, ativo && styles.horarioTextoAtivo]}>{h}</Text>
@@ -247,6 +271,7 @@ const styles = StyleSheet.create({
   localNome: { fontFamily: fonts.bold, fontSize: 15, color: colors.ink },
   localEnd: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2 },
   localDist: { fontFamily: fonts.bold, fontSize: 13, color: colors.green, marginTop: 4 },
+  erro: { fontFamily: fonts.medium, fontSize: 14, color: colors.danger, marginTop: 12 },
   vazioBox: { flex: 1, padding: 24, paddingTop: 120 },
   vazioTexto: { fontFamily: fonts.titleSemi, fontSize: 20, color: colors.ink },
 });

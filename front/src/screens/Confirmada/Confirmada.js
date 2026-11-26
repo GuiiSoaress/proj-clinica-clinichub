@@ -1,5 +1,5 @@
 // src/screens/Confirmada/Confirmada.js
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Icon from '../../components/Icons';
 import { Screen, Botao } from '../../components/Layout';
@@ -18,6 +18,9 @@ function Linha({ rotulo, valor, ultima, testID }) {
 export default function Confirmada({ navigation, route }) {
   const { consultas, cancelar } = useApp();
   const consulta = consultas.find((c) => c.id === route.params?.id);
+  // Cancelar é irreversível: pede confirmação antes (bug da Aula 14 — cancelava no 1º toque).
+  const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
 
   if (!consulta) {
     return (
@@ -49,20 +52,48 @@ export default function Confirmada({ navigation, route }) {
             />
           )}
           <Botao testID="botao-fechar" titulo="Fechar" variante="branco" onPress={() => navigation.navigate('Inicio')} />
-          {!cancelada && (
+          {!cancelada && !confirmandoCancelamento && (
             <Botao
               testID="botao-cancelar"
               titulo="Cancelar Consulta"
               variante="perigo"
-              onPress={async () => {
-                await cancelar(consulta.id);
-                navigation.navigate('Consultas');
-              }}
+              onPress={() => setConfirmandoCancelamento(true)}
             />
+          )}
+          {!cancelada && confirmandoCancelamento && (
+            <View testID="confirmacao-cancelamento" style={styles.confirmacao}>
+              <Text style={styles.confirmacaoTexto}>
+                Cancelar a consulta de {formatarData(consulta.data)} às {consulta.hora}? O lembrete
+                no aparelho também será cancelado.
+              </Text>
+              <Botao
+                testID="botao-confirmar-cancelamento"
+                titulo={cancelando ? 'Cancelando...' : 'Sim, cancelar'}
+                variante="perigo"
+                disabled={cancelando}
+                onPress={async () => {
+                  setCancelando(true);
+                  try {
+                    await cancelar(consulta.id);
+                    navigation.navigate('Consultas');
+                  } finally {
+                    setCancelando(false);
+                    setConfirmandoCancelamento(false);
+                  }
+                }}
+              />
+              <Botao
+                testID="botao-manter-consulta"
+                titulo="Não, manter consulta"
+                variante="branco"
+                disabled={cancelando}
+                onPress={() => setConfirmandoCancelamento(false)}
+              />
+            </View>
           )}
         </View>
       }
-      contentStyle={{ paddingBottom: 320 }}
+      contentStyle={{ paddingBottom: confirmandoCancelamento ? 460 : 320 }}
     >
       <View style={styles.topo}>
         <View style={[styles.selo, cancelada && { backgroundColor: colors.danger }]}>
@@ -94,9 +125,15 @@ export default function Confirmada({ navigation, route }) {
               <Text testID="lembrete-sem-permissao" style={styles.lembreteTextoAlerta}>
                 Permissão de notificações não concedida. O aplicativo não poderá lembrá-lo antes do horário.
               </Text>
-            ) : (
+            ) : lembreteInfo?.agendado ? (
               <Text testID="lembrete-programado" style={styles.lembreteTexto}>
                 Programado para avisar 1 hora antes no seu celular (mesmo sem internet).
+              </Text>
+            ) : (
+              // Qualquer outro caso (falha do sistema, web, lembrete desconhecido):
+              // não promete um aviso que não foi confirmado.
+              <Text testID="lembrete-indisponivel" style={styles.lembreteTextoAlerta}>
+                Não foi possível programar o lembrete neste aparelho. Confira a data e o horário em Minhas Consultas.
               </Text>
             )}
           </View>
@@ -161,6 +198,8 @@ const styles = StyleSheet.create({
   vitaisTexto: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2, lineHeight: 18 },
   vitaisValor: { fontFamily: fonts.bold, color: colors.ink },
   botaoContorno: { borderWidth: 1, borderColor: colors.border },
+  confirmacao: { gap: 10, backgroundColor: colors.white, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.danger },
+  confirmacaoTexto: { fontFamily: fonts.medium, fontSize: 14, color: colors.ink, lineHeight: 20 },
   cardLembrete: {
     marginTop: 20,
     marginHorizontal: 24,
