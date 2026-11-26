@@ -1,16 +1,16 @@
 // src/screens/Confirmada/Confirmada.js
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Icon from '../../components/Icons';
 import { Screen, Botao } from '../../components/Layout';
 import { useApp, formatarData } from '../../context/AppContext';
 import { colors, fonts } from '../../theme';
 
-function Linha({ rotulo, valor, ultima }) {
+function Linha({ rotulo, valor, ultima, testID }) {
   return (
     <View style={[styles.linha, !ultima && styles.linhaBorda]}>
       <Text style={styles.linhaRotulo}>{rotulo}</Text>
-      <Text style={styles.linhaValor}>{valor}</Text>
+      <Text testID={testID} style={styles.linhaValor}>{valor}</Text>
     </View>
   );
 }
@@ -18,10 +18,13 @@ function Linha({ rotulo, valor, ultima }) {
 export default function Confirmada({ navigation, route }) {
   const { consultas, cancelar } = useApp();
   const consulta = consultas.find((c) => c.id === route.params?.id);
+  // Cancelar é irreversível: pede confirmação antes (bug da Aula 14 — cancelava no 1º toque).
+  const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
 
   if (!consulta) {
     return (
-      <Screen navigation={navigation}>
+      <Screen navigation={navigation} testID="tela-consulta-nao-encontrada">
         <View style={{ padding: 24, paddingTop: 100 }}>
           <Text style={styles.titulo}>Consulta não encontrada</Text>
           <Botao titulo="Início" onPress={() => navigation.navigate('Inicio')} style={{ marginTop: 20 }} />
@@ -36,36 +39,67 @@ export default function Confirmada({ navigation, route }) {
   return (
     <Screen
       navigation={navigation}
+      testID="tela-confirmada"
       footer={
         <View style={{ gap: 10 }}>
-          <Botao titulo="Minhas Consultas" onPress={() => navigation.navigate('Consultas')} />
+          <Botao testID="botao-minhas-consultas" titulo="Minhas Consultas" onPress={() => navigation.navigate('Consultas')} />
           {!cancelada && (
             <Botao
+              testID="botao-remarcar"
               titulo="Remarcar Consulta"
               variante="branco"
               onPress={() => navigation.navigate('Confirmar', { remarcarId: consulta.id })}
             />
           )}
-          <Botao titulo="Fechar" variante="branco" onPress={() => navigation.navigate('Inicio')} />
-          {!cancelada && (
+          <Botao testID="botao-fechar" titulo="Fechar" variante="branco" onPress={() => navigation.navigate('Inicio')} />
+          {!cancelada && !confirmandoCancelamento && (
             <Botao
+              testID="botao-cancelar"
               titulo="Cancelar Consulta"
               variante="perigo"
-              onPress={async () => {
-                await cancelar(consulta.id);
-                navigation.navigate('Consultas');
-              }}
+              onPress={() => setConfirmandoCancelamento(true)}
             />
+          )}
+          {!cancelada && confirmandoCancelamento && (
+            <View testID="confirmacao-cancelamento" style={styles.confirmacao}>
+              <Text style={styles.confirmacaoTexto}>
+                Cancelar a consulta de {formatarData(consulta.data)} às {consulta.hora}? O lembrete
+                no aparelho também será cancelado.
+              </Text>
+              <Botao
+                testID="botao-confirmar-cancelamento"
+                titulo={cancelando ? 'Cancelando...' : 'Sim, cancelar'}
+                variante="perigo"
+                disabled={cancelando}
+                onPress={async () => {
+                  setCancelando(true);
+                  try {
+                    await cancelar(consulta.id);
+                    navigation.navigate('Consultas');
+                  } finally {
+                    setCancelando(false);
+                    setConfirmandoCancelamento(false);
+                  }
+                }}
+              />
+              <Botao
+                testID="botao-manter-consulta"
+                titulo="Não, manter consulta"
+                variante="branco"
+                disabled={cancelando}
+                onPress={() => setConfirmandoCancelamento(false)}
+              />
+            </View>
           )}
         </View>
       }
-      contentStyle={{ paddingBottom: 320 }}
+      contentStyle={{ paddingBottom: confirmandoCancelamento ? 460 : 320 }}
     >
       <View style={styles.topo}>
         <View style={[styles.selo, cancelada && { backgroundColor: colors.danger }]}>
           <Icon name="check" size={52} color={colors.white} />
         </View>
-        <Text style={styles.titulo}>
+        <Text testID="titulo-confirmada" style={styles.titulo}>
           {cancelada
             ? 'Consulta Cancelada'
             : route.params?.remarcada
@@ -77,35 +111,41 @@ export default function Confirmada({ navigation, route }) {
 
       {/* Card de status do lembrete (Passo 3 - Item 13: Honestidade no aviso) */}
       {!cancelada && (
-        <View style={styles.cardLembrete}>
+        <View testID="status-lembrete" style={styles.cardLembrete}>
           <View style={styles.lembreteIcone}>
             <Icon name="calendarPlus" size={20} color={colors.green} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.lembreteTitulo}>Lembrete no aparelho</Text>
             {lembreteInfo?.motivo === 'horario_passado' ? (
-              <Text style={styles.lembreteTextoAlerta}>
+              <Text testID="lembrete-nao-agendado" style={styles.lembreteTextoAlerta}>
                 A consulta é em menos de 1 hora. O horário de antecedência do lembrete já passou, portanto nenhum aviso foi programado.
               </Text>
             ) : lembreteInfo?.motivo === 'permissao_negada' ? (
-              <Text style={styles.lembreteTextoAlerta}>
+              <Text testID="lembrete-sem-permissao" style={styles.lembreteTextoAlerta}>
                 Permissão de notificações não concedida. O aplicativo não poderá lembrá-lo antes do horário.
               </Text>
-            ) : (
-              <Text style={styles.lembreteTexto}>
+            ) : lembreteInfo?.agendado ? (
+              <Text testID="lembrete-programado" style={styles.lembreteTexto}>
                 Programado para avisar 1 hora antes no seu celular (mesmo sem internet).
+              </Text>
+            ) : (
+              // Qualquer outro caso (falha do sistema, web, lembrete desconhecido):
+              // não promete um aviso que não foi confirmado.
+              <Text testID="lembrete-indisponivel" style={styles.lembreteTextoAlerta}>
+                Não foi possível programar o lembrete neste aparelho. Confira a data e o horário em Minhas Consultas.
               </Text>
             )}
           </View>
         </View>
       )}
 
-      <View style={styles.card}>
-        <Linha rotulo="Especialidade" valor={consulta.especialidade} />
-        <Linha rotulo="Médico" valor={consulta.medico} />
-        <Linha rotulo="Data" valor={formatarData(consulta.data)} />
-        <Linha rotulo="Horário" valor={consulta.hora} />
-        <Linha rotulo="Unidade" valor={consulta.unidade} ultima />
+      <View testID="resumo-consulta" style={styles.card}>
+        <Linha testID="resumo-especialidade" rotulo="Especialidade" valor={consulta.especialidade} />
+        <Linha testID="resumo-medico" rotulo="Médico" valor={consulta.medico} />
+        <Linha testID="resumo-data" rotulo="Data" valor={formatarData(consulta.data)} />
+        <Linha testID="resumo-hora" rotulo="Horário" valor={consulta.hora} />
+        <Linha testID="resumo-unidade" rotulo="Unidade" valor={consulta.unidade} ultima />
       </View>
 
       {/* Sinais vitais (Aula 7): só faz sentido antes da consulta. */}
@@ -130,6 +170,7 @@ export default function Confirmada({ navigation, route }) {
             </View>
           </View>
           <Botao
+            testID="botao-sinais-vitais"
             titulo={consulta.sinaisVitais ? 'Medir novamente' : 'Importar sinais vitais'}
             variante={consulta.sinaisVitais ? 'branco' : 'primario'}
             onPress={() => navigation.navigate('SinaisVitais', { consultaId: consulta.id })}
@@ -157,6 +198,8 @@ const styles = StyleSheet.create({
   vitaisTexto: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2, lineHeight: 18 },
   vitaisValor: { fontFamily: fonts.bold, color: colors.ink },
   botaoContorno: { borderWidth: 1, borderColor: colors.border },
+  confirmacao: { gap: 10, backgroundColor: colors.white, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.danger },
+  confirmacaoTexto: { fontFamily: fonts.medium, fontSize: 14, color: colors.ink, lineHeight: 20 },
   cardLembrete: {
     marginTop: 20,
     marginHorizontal: 24,

@@ -215,11 +215,27 @@ A conferência de conflitos de horários da clínica foi implementada como uma f
 
 ## Testes
 
-<!-- Preencher na Aula 14 -->
+Testes de unidade e de integração com **Jest + jest-expo + React Native Testing Library**
+(Aula 14). Rodam sem emulador, sem aparelho e sem servidor:
 
 ```bash
-[comando para rodar os testes end-to-end]
+cd front
+npm install
+npm test                  # toda a suíte
+npm test -- ComoChegar    # um arquivo
+npm test -- -t "fronteira" # pelo nome do teste
+npm run test:coverage     # com cobertura
 ```
+
+- **Unidade:** regras de negócio em funções puras (`front/src/regras.js`, conflitos de agenda,
+  distância, SMS e telefone), com casos de fronteira.
+- **Cenários de falha dos periféricos:** GPS negado, câmera cancelada, biometria sem sensor,
+  Bluetooth sem aparelhos/instável, notificação sem permissão, API fora do ar e lenta — cada
+  periférico é trocado por um service falso com `jest.mock`.
+- **Integração:** login, agendamento, cancelamento e a jornada completa em `front/App.test.js`.
+
+Plano de testes e relatório de bugs: `Docs/A14_05_Plano_de_Testes.docx` e
+`Docs/A14_06_Relatorio_de_Bugs.docx`. Testes E2E em aparelho (Maestro) ainda não existem.
 
 ## Build de produção e publicação
 

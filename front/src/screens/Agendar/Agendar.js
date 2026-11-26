@@ -5,23 +5,19 @@ import Icon from '../../components/Icons';
 import { Screen, Botao, MedicoAvatar } from '../../components/Layout';
 import { useApp } from '../../context/AppContext';
 import { ESPECIALIDADES } from '../../data/mock';
+import { filtrarMedicos } from '../../regras';
 import { colors, fonts } from '../../theme';
-
-const normalizar = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 export default function Agendar({ navigation }) {
   const { medicos: listaMedicos, medicoSelecionado, setMedicoSelecionado } = useApp();
   const [busca, setBusca] = useState('');
   const [especialidade, setEspecialidade] = useState('Cardiologia');
 
-  const medicos = useMemo(() => {
-    const q = normalizar(busca.trim());
-    return listaMedicos.filter((m) => {
-      if (especialidade && m.especialidade !== especialidade) return false;
-      if (!q) return true;
-      return normalizar(m.nome).includes(q) || normalizar(m.especialidade).includes(q);
-    });
-  }, [listaMedicos, busca, especialidade]);
+  // Regra de filtro em função pura (src/regras.js), testada sem tela.
+  const medicos = useMemo(
+    () => filtrarMedicos(listaMedicos, busca, especialidade),
+    [listaMedicos, busca, especialidade]
+  );
 
   // Só considera selecionado quem ainda está na lista filtrada.
   const selecionado = medicos.find((m) => m.id === medicoSelecionado?.id) || null;
@@ -30,8 +26,10 @@ export default function Agendar({ navigation }) {
     <Screen
       navigation={navigation}
       tab="Agendar"
+      testID="tela-agendar"
       footer={
         <Botao
+          testID="botao-agendar"
           titulo="Agendar"
           disabled={!selecionado}
           onPress={() => navigation.navigate('Confirmar')}
@@ -48,6 +46,7 @@ export default function Agendar({ navigation }) {
       <View style={styles.busca}>
         <Icon name="search" size={22} color={colors.muted2} />
         <TextInput
+          testID="campo-busca"
           value={busca}
           onChangeText={setBusca}
           placeholder="Pesquisar por nome ou especialidade"
@@ -62,6 +61,7 @@ export default function Agendar({ navigation }) {
           return (
             <Pressable
               key={esp}
+              testID={`especialidade-${esp}`}
               accessibilityRole="button"
               accessibilityState={{ selected: ativo }}
               onPress={() => setEspecialidade(ativo ? null : esp)}
@@ -77,6 +77,7 @@ export default function Agendar({ navigation }) {
         <View style={styles.secaoTopo}>
           <Text style={styles.h2}>Médico</Text>
           <Pressable
+            testID="botao-novo-medico"
             accessibilityRole="button"
             onPress={() => navigation.navigate('CadastroEdicaoMedico')}
             style={styles.novoMedicoBtn}
@@ -85,15 +86,16 @@ export default function Agendar({ navigation }) {
           </Pressable>
         </View>
 
-        <View style={{ gap: 10 }}>
+        <View testID="lista-medicos" style={{ gap: 10 }}>
           {medicos.length === 0 ? (
-            <Text style={styles.vazio}>Nenhum médico encontrado.</Text>
+            <Text testID="lista-medicos-vazia" style={styles.vazio}>Nenhum médico encontrado.</Text>
           ) : (
             medicos.map((m) => {
               const ativo = selecionado?.id === m.id;
               return (
                 <Pressable
                   key={m.id}
+                  testID={`medico-${m.id}`}
                   accessibilityRole="button"
                   accessibilityState={{ selected: ativo }}
                   onPress={() => setMedicoSelecionado(m)}
@@ -105,6 +107,7 @@ export default function Agendar({ navigation }) {
                     <Text style={styles.medicoSub}>{m.especialidade} - CRM {m.crm}</Text>
                   </View>
                   <Pressable
+                    testID={`editar-medico-${m.id}`}
                     accessibilityRole="button"
                     accessibilityLabel={`Editar ${m.nome}`}
                     onPress={() => navigation.navigate('CadastroEdicaoMedico', { medico: m })}

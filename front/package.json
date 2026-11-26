@@ -7,7 +7,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "auth-api": "node servidor/auth-api.js"
+    "auth-api": "node servidor/auth-api.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@expo-google-fonts/dm-sans": "^0.4.2",
@@ -38,5 +41,10 @@
     "react-native-svg": "15.16.0",
     "react-native-web": "^0.21.4"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@testing-library/react-native": "^14.1.0",
+    "jest": "~30.5.2",
+    "jest-expo": "~58.0.16"
+  }
 }

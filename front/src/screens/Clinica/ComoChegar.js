@@ -80,7 +80,7 @@ export default function ComoChegar({ navigation }) {
   const tempo = km !== null ? estimarTempo(km) : null;
 
   return (
-    <Screen navigation={navigation}>
+    <Screen navigation={navigation} testID="tela-como-chegar">
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
@@ -96,7 +96,7 @@ export default function ComoChegar({ navigation }) {
       {/* Endereço da clínica SEMPRE visível: a tela continua útil mesmo sem GPS */}
       <View style={styles.bloco}>
         <Text style={styles.rotulo}>Unidade de atendimento</Text>
-        <View style={styles.cardUnidade}>
+        <View testID="endereco-clinica" style={styles.cardUnidade}>
           <View style={styles.mapaIlustrativo}>
             <MiniMap />
           </View>
@@ -114,14 +114,14 @@ export default function ComoChegar({ navigation }) {
         <Text style={styles.h2}>Sua distância até a clínica</Text>
 
         {buscando && !posicao && (
-          <View style={styles.cardStatus}>
+          <View testID="carregando-localizacao" style={styles.cardStatus}>
             <ActivityIndicator size="small" color={colors.green} />
             <Text style={styles.statusTexto}>Obtendo sua localização pelo GPS...</Text>
           </View>
         )}
 
         {erro && (
-          <View style={styles.cardErro}>
+          <View testID="mensagem-erro" style={styles.cardErro}>
             <Text style={styles.erroTitulo}>
               {podePerguntarDeNovo === false
                 ? 'Permissão bloqueada nos ajustes'
@@ -133,6 +133,7 @@ export default function ComoChegar({ navigation }) {
 
             {podePerguntarDeNovo === true && (
               <Botao
+                testID="botao-permitir-localizacao"
                 titulo="Permitir e tentar novamente"
                 onPress={atualizarLocalizacao}
                 disabled={buscando}
@@ -142,6 +143,7 @@ export default function ComoChegar({ navigation }) {
 
             {podePerguntarDeNovo === false && Platform.OS !== 'web' && (
               <Botao
+                testID="botao-abrir-ajustes"
                 titulo="Abrir ajustes do aparelho"
                 onPress={abrirAjustes}
                 style={styles.botaoAcao}
@@ -150,6 +152,7 @@ export default function ComoChegar({ navigation }) {
 
             {podePerguntarDeNovo === null && (
               <Botao
+                testID="botao-tentar-novamente"
                 titulo="Tentar novamente"
                 variante="branco"
                 onPress={atualizarLocalizacao}
@@ -161,16 +164,16 @@ export default function ComoChegar({ navigation }) {
         )}
 
         {posicao && km !== null && tempo && (
-          <View style={styles.cardResultado}>
+          <View testID="resultado-distancia" style={styles.cardResultado}>
             <View style={styles.metricas}>
               <View style={styles.metricaItem}>
                 <Text style={styles.metricaRotulo}>Distância (linha reta)</Text>
-                <Text style={styles.metricaValor}>{formatarDistancia(km)}</Text>
+                <Text testID="valor-distancia" style={styles.metricaValor}>{formatarDistancia(km)}</Text>
               </View>
               <View style={styles.divisorVertical} />
               <View style={styles.metricaItem}>
                 <Text style={styles.metricaRotulo}>Tempo estimado</Text>
-                <Text style={styles.metricaTempo}>{tempo.resumo}</Text>
+                <Text testID="valor-tempo" style={styles.metricaTempo}>{tempo.resumo}</Text>
               </View>
             </View>
 
