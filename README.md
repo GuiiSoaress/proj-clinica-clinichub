@@ -52,9 +52,9 @@ alguns destes itens.
 - [ ] Integração inicial com os endpoints de usuários e login, via HTTPS
 - [ ] Identificação dos recursos que dependem de Web Services de terceiros
 - [x] Notificação local/push como lembrete de consulta agendada (Aulas 8 e 9)
-- [x] Processamento multithread para tarefas pesadas não travarem a interface
+- [x] Processamento multithread para tarefas pesadas não travarem a interface (Aula 10)
 - [ ] Sincronização da agenda em segundo plano (tarefa/serviço background)
-- [ ] Mapa exibindo a localização da clínica dentro do aplicativo
+- [x] Mapa exibindo a localização da clínica dentro do aplicativo (Aula 12)
 - [ ] Confirmação/cancelamento de consulta enviado por SMS
 - [x] Funcionalidade de agendamento de consultas (paciente)
 - [x] Funcionalidade de listagem das consultas agendadas
@@ -77,7 +77,7 @@ alguns destes itens.
 | Médicos (listagem) | [a preencher] | Cadastro/Edição de Médico |
 | Cadastro/Edição de Médico | Cadastro e edição de dados do médico com foto de perfil via câmera (`expo-image-picker`) | Agendar (volta) |
 | Login Biométrico | Destranca o token salvo no cofre do dispositivo via digital/biometria (`expo-local-authentication`) | Início, Login (e-mail/senha) |
-| Como Chegar | Exibe endereço da clínica e calcula distância em linha reta + tempo estimado via GPS (`expo-location`) | — |
+| Como Chegar / Mapa da Clínica (`MapaClinica.js`) | Exibe a localização da unidade em mapa interativo (`react-native-maps`), enquadra usuário e clínica (`fitToCoordinates`), calcula distância/tempo (GPS) e delega a rota ao app nativo (`Linking.openURL`) | — |
 | Sincronizar Agenda (Recepção) | Sincroniza a agenda da clínica e detecta conflitos de horários em fatias sem travar a interface (restrita à recepção) | — |
 | [adicionar novas telas conforme implementadas] | | |
 
@@ -85,9 +85,10 @@ alguns destes itens.
 
 - [React Native](https://reactnative.dev/) com [Expo](https://expo.dev/)
 - React Navigation (`@react-navigation/native`, `@react-navigation/stack`)
+- Mapas nativos: `react-native-maps` (Google Maps no Android, Apple Maps no iOS)
 - Periféricos e armazenamento seguro: `expo-image-picker`, `expo-local-authentication`, `expo-location`, `expo-secure-store`, `react-native-ble-plx`
-- [a preencher: bibliotecas das próximas aulas — expo-notifications, expo-task-manager,
-  react-native-maps, etc.]
+- Comunicação e notificações: `expo-notifications`, `expo-device`
+- [a preencher: bibliotecas das próximas aulas — expo-task-manager, etc.]
 - API RESTful da clínica (mock local via `json-server` / `auth-api.js` durante o desenvolvimento)
 
 ## Pré-requisitos
@@ -102,16 +103,16 @@ alguns destes itens.
 
 ```bash
 git clone [url-do-repositorio-da-squad]
-cd [nome-da-pasta-do-projeto]
+cd proj-clinica-clinichub/front
 npm install
 ```
 
 ### Variáveis de configuração
 
-O endereço da API é definido em `[caminho do arquivo, ex.: src/services/api.js]`:
+O endereço da API é definido em `src/services/api.js`:
 
 ```js
-const BASE_URL = "[http://SEU_IP_AQUI:3000]";
+const BASE_URL = "http://localhost:3001";
 ```
 
 > Em dispositivo físico (Expo Go), `localhost` não funciona — use o IP da máquina que
@@ -120,13 +121,15 @@ const BASE_URL = "[http://SEU_IP_AQUI:3000]";
 ### Subindo a API mock (durante o desenvolvimento)
 
 ```bash
-npx json-server --watch db_clinica.json --port 3000
+cd front
+npm run auth-api
 ```
 
 ## Como executar
 
 ```bash
-npx expo start
+cd front
+npm start
 ```
 
 Escaneie o QR Code com o app Expo Go, ou pressione `a`/`i` no terminal para abrir em um
@@ -145,14 +148,13 @@ Passo a passo para trocar de modo e testes de falha: [Docs/004-bluetooth-modo-re
 
 ## Permissões necessárias
 
-O aplicativo solicita acesso aos seguintes recursos do dispositivo. Documentem, para cada
-um, quando a permissão é pedida e o que acontece se o usuário negar:
+O aplicativo solicita acesso aos seguintes recursos do dispositivo:
 
 | Recurso | Quando é solicitado | Comportamento se negado |
 |---|---|---|
 | Câmera | Ao tocar em "Tirar foto de perfil" no formulário de médico (`MedicoForm`) ou no avatar da tela `Perfil` | Exibe um `Alert` explicando que a câmera é necessária para a foto de perfil; o cadastro/edição continua funcionando normalmente sem foto |
 | Biometria | Ao tocar em "Entrar com biometria" na tela `LoginBiometrico` (somente quando há sensor, biometria cadastrada e token salvo no cofre) | Cancelamento (`user_cancel`) é tratado como escolha sem erro; em falha ou ausência de sensor/biometria, o link "Entrar com e-mail e senha" permanece sempre visível |
-| Localização (GPS) | Ao abrir ou tocar em atualizar na tela `Como chegar` (`requestForegroundPermissionsAsync`) | O endereço da clínica permanece visível; se ainda puder perguntar (`canAskAgain: true`), explica e oferece tentar novamente; se negado permanentemente (`canAskAgain: false`), oferece atalho para `Linking.openSettings()` |
+| Localização (GPS) | Ao abrir ou tocar em "Onde estou?" na tela `Como chegar / Mapa da clínica` (`requestForegroundPermissionsAsync`) | O mapa e o endereço da clínica permanecem sempre visíveis; se puder perguntar de novo (`canAskAgain: true`), oferece tentar novamente; se negado permanentemente (`canAskAgain: false`), oferece atalho direto para `Linking.openSettings()` |
 | Bluetooth | Ao tocar em "Procurar aparelhos" na tela Sinais vitais (só no modo real). Android 12+: `BLUETOOTH_SCAN`/`BLUETOOTH_CONNECT`; Android ≤ 11: localização precisa | A tela avisa que não há permissão, explica como liberar nas configurações e oferece "Digitar os valores manualmente" |
 | Notificações | Ao agendar consulta ou acessar a tela de Notificações (`garantirPermissao`) | Se negada, o agendamento conclui normalmente e a tela Confirmada avisa que o lembrete não será disparado; se `canAskAgain: false`, devolve `false` sem insistir e oferece atalho para `Linking.openSettings()` |
 
@@ -212,6 +214,58 @@ A conferência de conflitos de horários da clínica foi implementada como uma f
 - **Tamanho de fatia escolhido (`500` itens + `cederAVez()` por médico):** com `100` itens o overhead de agendar dezenas de macrotasks elevou o tempo total para `1.268 ms`; com `5000` itens todo o agrupamento ocorre de uma só vez sem ceder à UI. `500` itens mantém cada bloco rápido, entrega 18 atualizações reais para a barra de progresso e permite cancelamento imediato pelo botão **Cancelar verificação** ou ao sair da tela.
 - **Sobre `react-native-worklets`:** `react-native-worklets` seria justificável no desafio se precisássemos processar fluxos contínuos em alta frequência fora da JS thread (como quadros de câmera em tempo real ou streams contínuos de sensores BLE a dezenas de Hz). Para a verificação sob demanda de 4.000 consultas, o algoritmo $O(n \log n)$ agrupado por médico combinado ao fatiamento cooperativo com `setTimeout(0)` já executa em ~211 ms sem adicionar dependências nativas.
 - **Preparação para a Aula 11 (Background):** `detectarConflitos` foi escrita em JavaScript puro em `src/services/processamento.js` (sem dependências de React ou UI) e recebe `onProgresso` e `sinal` opcionais, permitindo executar exatamente a mesma lógica em segundo plano quando não houver tela montada.
+
+---
+
+### Mapas na Prática — Mapa da Clínica e Acessibilidade (Aula 12)
+
+A tela `Como chegar` (criada na Aula 6) evoluiu para `MapaClinica.js`, apresentando a localização da unidade em um mapa interativo nativo (`react-native-maps`) na parte superior e mantendo o painel de texto acessível na parte inferior.
+
+#### 1. Registro de Decisão Arquitetural (ADR 001 — Adendo Aula 12): Delegar o traçado de rotas ao app de mapas nativo
+
+- **Contexto:** Os pacientes precisam saber como se deslocar até a clínica. Uma alternativa seria traçar o trajeto passo a passo (turn-by-turn) com polilinhas dentro da própria tela do aplicativo.
+- **Decisão:** O ClinicHub **NÃO** traça rotas dentro do aplicativo. A ação "Como chegar" dispara um deep link (`Linking.openURL`) delegando a navegação ao aplicativo padrão de mapas do sistema operacional (`geo:` no Android, `maps:` no iOS).
+- **O que se ganha:**
+  1. **Custo zero e sem cotas de API:** serviços de rotas (como Google Directions API ou Mapbox Directions) são pagos, cobrados por requisição e exigem faturamento ativo e chaves de API restritas. Delegar ao SO tem custo zero.
+  2. **Qualidade e trânsito em tempo real:** aplicativos nativos (Google Maps, Waze, Apple Maps) já possuem navegação por voz, rotas dinâmicas recalculadas com base em acidentes e trânsito ao vivo, além de opções de transporte público, pedestre e carro.
+  3. **Privacidade e comodidade para o paciente:** o aplicativo do aparelho já mantém o histórico de locais salvos e preferências de locomoção do usuário.
+  4. **Código enxuto e robusto:** a integração é resolvida em poucas linhas com `Linking.openURL` e `Platform.select`.
+- **O que se perde:** O paciente sai momentaneamente da interface do ClinicHub para abrir o aplicativo de mapas externo.
+- **Por quê:** O ganho em experiência de navegação em tempo real e a eliminação de custos recorrentes de infraestrutura superam amplamente qualquer conveniência de manter o paciente em uma visualização estática e limitada dentro do app.
+
+#### 2. Chave de API de Mapas (Google Maps SDK for Android) e Procedimento para o Build de Produção
+
+- **Responsável na squad:** Guilherme Soares (conforme definido na Aula 5 / ADR 001).
+- **Configuração segura fora do Git:** A chave é injetada dinamicamente via `front/app.config.js` consumindo a variável `GOOGLE_MAPS_API_KEY` (definida em `.env`), garantindo que nenhuma chave secreta seja commitada no repositório.
+- **Expo Go × Build de Produção:**
+  - No **Expo Go**, o Android utiliza chaves embutidas do cliente Expo (no iOS o Apple Maps não requer chave alguma).
+  - No **Build próprio de produção** (Aula 15 via EAS Build), a ausência de chave própria ativa causa o sintoma clássico de **"mapa cinza"** (apenas o logo do Google e marcadores são visíveis, sem os tiles das ruas).
+- **Pendência explícita para a Aula 15:** A geração e validação da chave com o serviço *Maps SDK for Android* ativado no Google Cloud Console com faturamento habilitado está registrada formalmente como pré-requisito da squad para o build final na Aula 15.
+
+#### 3. Auditoria e Correções de Acessibilidade (Momento 4 — Leitor de Tela TalkBack / VoiceOver)
+
+A squad realizou testes completos de acessibilidade simulando usuários com deficiência visual e ambientes com conectividade degradada:
+
+- **Regra de ouro da arquitetura:** *A informação vive no TEXTO; o mapa é a forma agradável de exibi-la — nunca o contrário.*
+- **Correções efetuadas pós-teste com leitor de tela:**
+  1. **`accessibilityLabel` no `MapView`:** Sem esse atributo, leitores de tela tratavam a área do mapa como uma imagem muda ou ignoravam o componente. Foi adicionado o anúncio: `"Mapa mostrando a localização da Clínica Centro"`.
+  2. **`accessibilityRole="button"` e labels compreensíveis fora de contexto:** Botões como "Onde estou?" foram enriquecidos para o leitor de tela anunciar `"Mostrar minha localização no mapa e enquadrar a clínica"`, e o botão "Ver a clínica" anuncia `"Centralizar mapa na clínica"`.
+  3. **Texto copiável (`selectable`):** O endereço completo e o número de telefone receberam a propriedade `selectable`, permitindo que pacientes copiem facilmente os dados para colar em apps de mensagens, chamadas ou transporte.
+  4. **Teste sem rede (Modo Avião / Wi-Fi desligado):** Ao desativar a rede, os tiles de imagem do mapa não carregam, deixando a área gráfica cinza. No entanto, o painel inferior em texto garante que o paciente consulte endereço, complementos, telefone e horário de funcionamento normalmente, sem que o app quebre ou fique inutilizável.
+  5. **Enquadramento com margem (`edgePadding`):** A chamada a `fitToCoordinates` utiliza `edgePadding: { top: 70, right: 70, bottom: 70, left: 70 }`, evitando que o marcador do usuário ou da clínica fiquem cortados nas bordas do visor.
+
+#### 4. Respostas para Arguição de Fechamento (Momento 4)
+
+1. **O que são latitudeDelta e longitudeDelta? O que acontece se colocar 0.5 em cada um?**
+   Representam a amplitude da área visível em graus (altura e largura da "câmera"), funcionando como o inverso do zoom: quanto menor o delta, mais próximo o zoom (ex.: 0.002 = rua; 0.01 = algumas quadras). Se colocarmos 0.5, a câmera afasta bruscamente, enquadrando uma região metropolitana inteira ou estado, perdendo a visão de ruas e bairros próximos.
+2. **O mapa funciona agora no Expo Go. Vai funcionar no build de produção da Aula 15? O que precisa acontecer antes?**
+   Não funcionará automaticamente no Android se não tiver uma chave própria. No Expo Go o Android usa uma chave embutida do Expo, mas o build de produção exige que a squad cadastre um projeto no Google Cloud com faturamento ativo, ative a API *Maps SDK for Android*, gere a chave restrita ao pacote da aplicação (`app_clinica`) e a configure via `app.config.js` (`GOOGLE_MAPS_API_KEY`).
+3. **Um colega escreveu `coordinate={{ latitude: u.lat, longitude: u.lon }}` direto no JSX dentro de um map com 200 marcadores. Qual é o problema e com qual aula se parece?**
+   O problema é que objetos literais criados no render geram novas referências na memória a cada ciclo. O `MapView` interpreta que todas as coordenadas mudaram e força o redesenho completo de todos os marcadores, sobrecarregando a thread de JavaScript e congelando a tela ao arrastar o mapa. Esse problema se parece com a **Aula 10** (trabalho excessivo na JS thread bloqueando a UI). A correção é memorizar as coordenadas com `useMemo` e preferir `pinColor` em vez de Views customizadas dentro dos Markers.
+4. **Uma paciente cega quer saber o endereço da clínica pelo app. Descreva o caminho que ela percorre. Ele funciona?**
+   Sim, funciona com 100% de precisão. Ao abrir o aplicativo com o leitor de tela (TalkBack ou VoiceOver), a usuária navega pelos atalhos e acessa "Como chegar". O leitor anuncia o título da tela e descreve o mapa ("Mapa mostrando a localização da Clínica Centro"). Em seguida, o leitor percorre o painel de texto estruturado, anunciando com clareza o nome da unidade ("Clínica Centro"), o endereço completo ("Av. Paulista, 1200, Bela Vista, São Paulo - SP"), o horário de atendimento e o telefone da recepção. Além disso, a paciente pode dar dois toques no botão "Como chegar" para abrir a navegação guiada por voz do Google Maps ou Apple Maps.
+
+---
 
 ## Testes
 

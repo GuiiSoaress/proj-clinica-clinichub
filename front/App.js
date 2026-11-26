@@ -20,7 +20,7 @@ import Confirmada from './src/screens/Confirmada/Confirmada';
 import Consultas from './src/screens/Consultas/Consultas';
 import Perfil from './src/screens/Perfil/Perfil';
 import SinaisVitais from './src/screens/Consulta/SinaisVitais';
-import ComoChegar from './src/screens/Clinica/ComoChegar';
+import MapaClinica from './src/screens/Clinica/MapaClinica';
 import CadastroEdicaoMedicoScreen from './src/screens/Medico/CadastroEdicaoMedicoScreen';
 import NotificacoesScreen from './src/screens/Notificacoes/NotificacoesScreen';
 import SincronizarAgenda from './src/screens/Agenda/SincronizarAgenda';
@@ -130,7 +130,8 @@ function RootNavigator() {
             <Stack.Screen name="Consultas" component={Consultas} />
             <Stack.Screen name="Perfil" component={Perfil} />
             <Stack.Screen name="SinaisVitais" component={SinaisVitais} />
-            <Stack.Screen name="ComoChegar" component={ComoChegar} />
+            <Stack.Screen name="ComoChegar" component={MapaClinica} />
+            <Stack.Screen name="MapaClinica" component={MapaClinica} />
             <Stack.Screen name="CadastroEdicaoMedico" component={CadastroEdicaoMedicoScreen} />
             <Stack.Screen name="Notificacoes" component={NotificacoesScreen} />
             <Stack.Screen name="SincronizarAgenda" component={SincronizarAgenda} />

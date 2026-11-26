@@ -26,6 +26,9 @@ export const HORARIOS = ['12:00', '14:00', '15:30'];
 export const UNIDADE = {
   nome: 'Clínica Centro',
   endereco: 'Av. Paulista, 1200',
+  complemento: 'Bela Vista · São Paulo - SP · CEP 01310-100',
+  telefone: '(11) 3254-7000',
+  horario: 'Seg a Sex, das 07h às 19h',
   distancia: 'a 2,4 km de você',
 };
 

@@ -1,16 +1,25 @@
 // src/services/localizacao.js
-// Isola o acesso ao GPS (expo-location) e os cálculos geográficos (Aula 6).
+// Isola o acesso ao GPS (expo-location) e os cálculos geográficos (Aula 6 e Aula 12).
 // Nenhuma tela deve importar 'expo-location' diretamente: se o provedor ou a
 // estratégia de leitura mudar, só este arquivo muda.
 
 import * as Location from 'expo-location';
 
 // Coordenadas fixas da unidade principal (Av. Paulista, 1200 - São Paulo/SP).
-// Pendência consciente: na Aula 5 vimos como obter coordenadas via geocoding
-// e na Aula 12 este endereço será exibido em um mapa real (ADR 001).
+// Na Aula 12 este endereço é exibido em um mapa nativo interativo (ADR 001).
 export const COORDENADAS_CLINICA = {
   latitude: -23.5632,
   longitude: -46.6544,
+};
+
+// Região inicial para o MapView (Aula 12 - Passo 2).
+// latitudeDelta / longitudeDelta definem o zoom inicial (~0.01 = algumas quadras).
+// Delta pequeno = mais próximo; delta grande = mais distante.
+export const REGIAO_INICIAL = {
+  latitude: COORDENADAS_CLINICA.latitude,
+  longitude: COORDENADAS_CLINICA.longitude,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
 };
 
 const RAIO_TERRA_KM = 6371;
