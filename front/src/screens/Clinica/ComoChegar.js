@@ -1,10 +1,7 @@
 // src/screens/Clinica/ComoChegar.js
-// Tela "Como chegar" (Aula 6): calcula a distância do paciente até a clínica
-// e uma estimativa de tempo consumindo apenas o service de localização.
-//
-// Regra de ouro: esta tela não importa 'expo-location' diretamente. Além disso,
-// o endereço da clínica permanece sempre visível — recurso negado nunca pode
-// virar tela vazia.
+// Mantido para retrocompatibilidade: na Aula 12 a tela ComoChegar evoluiu
+// para MapaClinica.js, incorporando o mapa interativo (react-native-maps)
+// na parte superior e o painel de texto acessível na parte inferior.
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {

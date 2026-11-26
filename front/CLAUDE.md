@@ -4,21 +4,21 @@ Guia do app mobile em `front/` (`app_clinica`). Contexto geral do projeto em [..
 
 ## Stack
 
-Expo SDK 54, React Native 0.81, React 19, `@react-navigation/stack`, `react-native-svg`, fontes via `@expo-google-fonts` (Fraunces e DM Sans) carregadas com `expo-font`. JavaScript puro (sem TypeScript).
+Expo SDK 54/58, React Native 0.88, React 19, `@react-navigation/stack`, `react-native-maps`, `react-native-svg`, fontes via `@expo-google-fonts` (Fraunces e DM Sans) carregadas com `expo-font`. JavaScript puro (sem TypeScript).
 
-> Os ADRs (`../Docs/`) preveem Google Maps (`react-native-maps`), Expo Push Service e SMS por gateway. O push exige **development build (EAS)**, então o app deixará de rodar no Expo Go padrão no Android. Integrações de terceiros devem ficar isoladas em um único módulo (ex.: `src/services/`), sem acoplar as telas ao provedor. Credenciais de SMS nunca vão para o app.
+> Os ADRs (`../Docs/`) preveem Google Maps (`react-native-maps`), Expo Push Service e SMS por gateway. O push e o build nativo de produção exigem **development build (EAS)** para Android com chave própria no Google Cloud Console (`GOOGLE_MAPS_API_KEY` em `app.config.js`). Integrações de terceiros devem ficar isoladas em um único módulo (ex.: `src/services/`), sem acoplar as telas ao provedor. Credenciais nunca vão para o Git.
 
 
 ## Arquitetura
 
 - [App.js](App.js): carrega as fontes, envolve tudo em `SafeAreaProvider` e `AppProvider`. Gerencia navegação condicional por token:
   - Públicas: `LoginBiometrico`, `Login`.
-  - Privadas: `Inicio`, `Agendar`, `Confirmar`, `Confirmada`, `Consultas`, `Perfil`, `SinaisVitais`, `ComoChegar`, `CadastroEdicaoMedico`, `Notificacoes`, `SincronizarAgenda`.
+  - Privadas: `Inicio`, `Agendar`, `Confirmar`, `Confirmada`, `Consultas`, `Perfil`, `SinaisVitais`, `ComoChegar` (alias para `MapaClinica`), `MapaClinica`, `CadastroEdicaoMedico`, `Notificacoes`, `SincronizarAgenda`.
 - `src/screens/<Tela>/<Tela>.js`:
   - `Login/LoginBiometrico.js` → checa sensor, biometria cadastrada e `obterToken()`; se não houver token salvo redireciona para `Login`, caso contrário oferece desbloqueio biométrico mantendo sempre visível o link "Entrar com e-mail e senha".
   - `Login/Login.js` → autentica via API e salva token no SecureStore.
   - `Inicio`, `Agendar` e `Perfil` são as abas da barra inferior.
-  - `Clinica/ComoChegar.js` → exibe o endereço da clínica e calcula distância em linha reta + estimativa de tempo consumindo `src/services/localizacao.js`.
+  - `Clinica/MapaClinica.js` (evolução de `ComoChegar.js`, Aula 12) → mapa nativo interativo (`react-native-maps`) na parte superior com marcadores, callout, `initialRegion` e `fitToCoordinates` com `edgePadding`. Painel inferior com endereço selecionável (`selectable`), telefone, horário, cálculo de distância e estimativa de tempo via GPS (`src/services/localizacao.js`), e delegação de rotas para o app nativo (`Linking.openURL`). `ComoChegar.js` mantido como re-export retrocompatível.
   - `Medico/CadastroEdicaoMedicoScreen.js` → cadastro e edição de médico usando `MedicoForm.js` com captura de foto de perfil via câmera.
   - Fluxo de agendamento: `Agendar` → `Confirmar` → `Confirmada` (recebe `route.params.id`).
   - `Consultas` (Minhas Consultas) é aberta pelo Início/Perfil; os cards levam a `Confirmada`. Para o perfil `recepcao`, exibe banner para `SincronizarAgenda`.
@@ -30,7 +30,7 @@ Expo SDK 54, React Native 0.81, React 19, `@react-navigation/stack`, `react-nati
   - `Layout.js`: `Screen` (rolagem, safe area, `tab` para a barra inferior, `footer` para botão fixo), `TabBar`, `Botao` (variantes `primario`, `branco`, `perigo`), `MedicoAvatar` (com suporte a `fotoUri`), `iniciais`.
   - `MedicoForm.js`: formulário de cadastro/edição de médico com `escolherFoto()` via `expo-image-picker`.
   - `FotoPerfilCampo.js`: componente reaproveitável para captura e exibição de foto de perfil com câmera.
-  - `Icons.js`: ícones SVG (`<Icon name=... />`, incluindo `heart`, `camera`, `mapPin`, `stethoscope`) e `MiniMap`.
+  - `Icons.js`: ícones SVG (`<Icon name=... />`, incluindo `heart`, `camera`, `mapPin`, `stethoscope`, `refresh`, `alertTriangle`) e `MiniMap`.
   - `ConsultaCard.js`: card de consulta (variantes `home` e `lista`).
 - `src/context/AppContext.js`: estado global (`consultas`, `medicos`, `medicoSelecionado`, `usuario`, `token`, `agendar`, `cancelar`, `salvarMedico`, `atualizarFotoUsuario`, `destrancarSessao`, `bloquearSessao`, `registrarSinaisVitais`, `login`, `logout`) e helpers de data.
 - `src/regras.js`: regras de negócio em funções puras (validação de login e de médico, telefone E.164, segmentos de SMS, frequência cardíaca, `validarAgendamento`, `filtrarMedicos`). Teste em `src/regras.test.js`.
@@ -41,12 +41,12 @@ Expo SDK 54, React Native 0.81, React 19, `@react-navigation/stack`, `react-nati
 - `src/hooks/`:
   - `useTarefaPesada.js`: executa tarefas cooperativas com estados `rodando`, `progresso`, `etapa`, `resultado`, `erro`, `cancelada`, proteção contra desmontagem e cancelamento automático no cleanup.
   - `sessao.js`: persistência da sessão no `expo-secure-store` (`salvarSessao`, `recuperarSessao`, `obterToken`, `limparSessao`).
-  - `localizacao.js`: permissão, leitura de GPS (`Accuracy.Balanced`), erro `PermissaoNegada` com `canAskAgain`, cálculo de distância de Haversine (`distanciaKm`), `formatarDistancia` e estimativa de tempo.
+  - `localizacao.js`: permissão, leitura de GPS (`Accuracy.Balanced`), erro `PermissaoNegada` com `canAskAgain`, cálculo de distância de Haversine (`distanciaKm`), `formatarDistancia`, estimativa de tempo e constantes `COORDENADAS_CLINICA` / `REGIAO_INICIAL`.
   - `bluetooth.js`: interface isolada para BLE (`procurar`, `pararBusca`, `conectar`, `monitorarFrequencia`, `desconectar`). Controlado por `MODO_SIMULADO` e `FALHAS_SIMULADAS`.
   - `lembretes.js`: gerenciador de lembretes locais (Aula 8) com `configurarHandler`, `prepararCanal`, `garantirPermissao`, `agendarLembrete`, `cancelarLembrete`, mapa no AsyncStorage (`@clinichub:lembretes`) e navegação por toque (app aberto e fechado).
   - `push.js`: serviço de push notifications remotas (Aula 9) com `obterTokenPush`, `registrarDispositivo` (`POST /dispositivos`), `manterRegistroAtualizado`, erro customizado `PushIndisponivel` e tratamento gracioso para emulador/web.
 - `servidor/auth-api.js`: servidor HTTP mock na porta 3001 com autenticação (`POST /login`), perfil, médicos, consultas (`/consultas`), agenda volumosa restrita à recepção (`GET /agenda/consultas`), prontuário em memória (`POST /sinais-vitais`) e dispositivos push (`/dispositivos`).
-- `src/data/mock.js`: especialidades, médicos, horários, unidade, paciente e consultas iniciais.
+- `src/data/mock.js`: especialidades, médicos, horários, unidade (com endereço, telefone e horário), paciente e consultas iniciais.
 - `src/theme.js`: `colors`, `fonts` e sombra da barra.
 
 ## Modelo de dados (em memória)
@@ -60,7 +60,7 @@ Origem: protótipo "ClinicHub — Telas do Paciente" (Figma em `../Docs/Link Fig
 
 ## Pendências conhecidas
 
-- Coordenadas da clínica estão fixas em `src/services/localizacao.js` (geocoding visto na Aula 5; mapa interativo previsto para a Aula 12 conforme ADR 001).
+- Coordenadas da clínica exibidas em mapa nativo interativo (Aula 12, ADR 001). Chave de API própria do Google Maps pendente para o build de produção da Aula 15.
 - Foto de perfil guarda a URI local no dispositivo (upload para servidor via POST é extensão futura).
 - "Dados pessoais" em Perfil mostra aviso.
 - Notificações locais implementadas na Aula 8 com tela de auditoria e testes (`src/screens/Notificacoes/NotificacoesScreen.js`).
