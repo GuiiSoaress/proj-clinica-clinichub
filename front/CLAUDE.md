@@ -33,8 +33,10 @@ Expo SDK 54/58, React Native 0.88, React 19, `@react-navigation/stack`, `react-n
   - `Icons.js`: ícones SVG (`<Icon name=... />`, incluindo `heart`, `camera`, `mapPin`, `stethoscope`, `refresh`, `alertTriangle`) e `MiniMap`.
   - `ConsultaCard.js`: card de consulta (variantes `home` e `lista`).
 - `src/context/AppContext.js`: estado global (`consultas`, `medicos`, `medicoSelecionado`, `usuario`, `token`, `agendar`, `cancelar`, `salvarMedico`, `atualizarFotoUsuario`, `destrancarSessao`, `bloquearSessao`, `registrarSinaisVitais`, `login`, `logout`) e helpers de data.
+- `src/regras.js`: regras de negócio em funções puras (validação de login e de médico, telefone E.164, segmentos de SMS, frequência cardíaca, `validarAgendamento`, `filtrarMedicos`). Teste em `src/regras.test.js`.
 - `src/services/`:
-  - `api.js`: `BASE_URL` (`http://localhost:3001`), `apiFetch` (com Bearer token) e helpers `get`, `post`, `put` e `del`.
+  - `api.js`: `BASE_URL` (`http://localhost:3001`), `apiFetch` (com Bearer token, teto de 10 s e erro `ApiIndisponivel` para rede fora/lenta) e helpers `get`, `post`, `put` e `del`.
+  - `camera.js`: `tirarFoto()` e `CameraPermissaoNegada`; única porta para `expo-image-picker` (usada por `MedicoForm` e `FotoPerfilCampo`).
   - `processamento.js`: detecção de conflitos da agenda (`conflita`, `detectarConflitosIngenuo`, `detectarConflitosOrdenado`, `cederAVez`, `criarSinalDeCancelamento`, `processarEmFatias`, `detectarConflitos`).
 - `src/hooks/`:
   - `useTarefaPesada.js`: executa tarefas cooperativas com estados `rodando`, `progresso`, `etapa`, `resultado`, `erro`, `cancelada`, proteção contra desmontagem e cancelamento automático no cleanup.
@@ -66,4 +68,4 @@ Origem: protótipo "ClinicHub — Telas do Paciente" (Figma em `../Docs/Link Fig
 
 ## Ao adicionar telas
 
-Crie `src/screens/<Nome>/<Nome>.js`, use `Screen` de `Layout.js` e os tokens de `theme.js`, registre a rota em `App.js` e atualize este arquivo.
+Crie `src/screens/<Nome>/<Nome>.js`, use `Screen` de `Layout.js` e os tokens de `theme.js`, registre a rota em `App.js` e atualize este arquivo. Ponha `testID` na raiz da tela (`<Screen testID="tela-nome">`), em campos, botões (`<Botao testID=...>`), mensagens de erro e indicadores de carregando; periférico novo entra atrás de um service em `src/services/` para o teste poder simular a falha.

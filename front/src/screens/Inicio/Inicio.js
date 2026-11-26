@@ -7,11 +7,12 @@ import ConsultaCard from '../../components/ConsultaCard';
 import { useApp } from '../../context/AppContext';
 import { colors, fonts } from '../../theme';
 
-function Atalho({ titulo, icone, onPress, destaque, escuro }) {
+function Atalho({ titulo, icone, onPress, destaque, escuro, testID }) {
   const fundo = destaque ? colors.coral : escuro ? colors.green : colors.white;
   const cor = destaque ? colors.ink : escuro ? colors.white : colors.green;
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.atalho, { backgroundColor: fundo, opacity: pressed ? 0.85 : 1 }]}
@@ -30,11 +31,11 @@ export default function Inicio({ navigation }) {
     .slice(0, 2);
 
   return (
-    <Screen navigation={navigation} tab="Inicio">
+    <Screen navigation={navigation} tab="Inicio" testID="tela-inicio">
       <View style={styles.header}>
         <View>
           <Text style={styles.bemVindo}>Bem-vindo de volta</Text>
-          <Text style={styles.ola}>Olá, {usuario ? usuario.nome.split(' ')[0] : 'Paciente'}</Text>
+          <Text testID="saudacao" style={styles.ola}>Olá, {usuario ? usuario.nome.split(' ')[0] : 'Paciente'}</Text>
         </View>
         <View style={styles.logo}>
           <Icon name="plus" size={26} color={colors.coral} />
@@ -44,10 +45,10 @@ export default function Inicio({ navigation }) {
       <View style={styles.secao}>
         <Text style={styles.h2}>Acesso rápido</Text>
         <View style={styles.grid}>
-          <Atalho titulo="Agendar Consulta" icone="calendarPlus" destaque onPress={() => navigation.navigate('Agendar')} />
-          <Atalho titulo="Minhas Consultas" icone="clipboard" onPress={() => navigation.navigate('Consultas')} />
-          <Atalho titulo="Perfil" icone="user" onPress={() => navigation.navigate('Perfil')} />
-          <Atalho titulo="Como chegar" icone="mapPin" escuro onPress={() => navigation.navigate('ComoChegar')} />
+          <Atalho testID="atalho-agendar" titulo="Agendar Consulta" icone="calendarPlus" destaque onPress={() => navigation.navigate('Agendar')} />
+          <Atalho testID="atalho-consultas" titulo="Minhas Consultas" icone="clipboard" onPress={() => navigation.navigate('Consultas')} />
+          <Atalho testID="atalho-perfil" titulo="Perfil" icone="user" onPress={() => navigation.navigate('Perfil')} />
+          <Atalho testID="atalho-como-chegar" titulo="Como chegar" icone="mapPin" escuro onPress={() => navigation.navigate('ComoChegar')} />
         </View>
       </View>
 

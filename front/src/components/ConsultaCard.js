@@ -16,7 +16,7 @@ export default function ConsultaCard({ consulta, variante = 'lista', onPress }) 
   const Wrapper = onPress ? Pressable : View;
 
   return (
-    <Wrapper onPress={onPress} style={styles.card} accessibilityRole={onPress ? 'button' : undefined}>
+    <Wrapper testID={`consulta-${consulta.id}`} onPress={onPress} style={styles.card} accessibilityRole={onPress ? 'button' : undefined}>
       <View style={[styles.selo, variante === 'home' ? styles.seloHome : styles.seloLista]}>
         <Text style={[styles.dia, { fontSize: variante === 'home' ? 24 : 26 }]}>{dia}</Text>
         <Text style={styles.seloBaixo}>{seloBaixo}</Text>

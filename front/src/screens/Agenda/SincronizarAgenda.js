@@ -200,7 +200,7 @@ export default function SincronizarAgenda({ navigation }) {
   }
 
   return (
-    <Screen navigation={navigation}>
+    <Screen navigation={navigation} testID="tela-sincronizar-agenda">
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
@@ -233,7 +233,7 @@ export default function SincronizarAgenda({ navigation }) {
           </View>
 
           {rodando ? (
-            <View style={styles.progressoBox}>
+            <View testID="carregando-agenda" style={styles.progressoBox}>
               <View style={styles.progressoTextoLinha}>
                 <Text style={styles.progressoEtapa}>{etapa || 'Processando agenda...'}</Text>
                 <Text style={styles.progressoPercentual}>{percentual}%</Text>
@@ -242,6 +242,7 @@ export default function SincronizarAgenda({ navigation }) {
                 <View style={[styles.barra, { width: `${percentual}%` }]} />
               </View>
               <Botao
+                testID="botao-cancelar-verificacao"
                 titulo="Cancelar verificação"
                 variante="perigo"
                 onPress={cancelar}
@@ -250,7 +251,8 @@ export default function SincronizarAgenda({ navigation }) {
             </View>
           ) : (
             <Botao
-              titulo="Sincronizar e verificar conflitos"
+              testID="botao-sincronizar"
+              titulo={erro ? 'Tentar novamente' : 'Sincronizar e verificar conflitos'}
               onPress={() => {
                 setMedicoFiltro('todos');
                 setLimiteVisivel(PASSO_LISTA);
@@ -269,7 +271,7 @@ export default function SincronizarAgenda({ navigation }) {
           )}
 
           {erro && !rodando && (
-            <View style={styles.cardErro}>
+            <View testID="mensagem-erro" style={styles.cardErro}>
               <Text style={styles.erroTitulo}>
                 {erroStatus === 401
                   ? 'Sessão expirada'
@@ -285,7 +287,7 @@ export default function SincronizarAgenda({ navigation }) {
                   : erroStatus === 403
                     ? 'Esta verificação é permitida apenas para o perfil de recepção.'
                     : !erroStatus
-                      ? `${erro}. Verifique se a auth-api está rodando em ${BASE_URL} e se o aparelho está na mesma rede.`
+                      ? `${String(erro).replace(/\.$/, '')}. Verifique se a auth-api está rodando em ${BASE_URL} e se o aparelho está na mesma rede.`
                       : erro}
               </Text>
               {erroStatus === 401 && (
@@ -319,6 +321,7 @@ export default function SincronizarAgenda({ navigation }) {
                 ]}
               >
                 <Text
+                  testID="resumo-conflitos"
                   style={[
                     styles.metricaValor,
                     { color: totalConflitos > 0 ? colors.danger : colors.green },

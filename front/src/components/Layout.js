@@ -12,11 +12,13 @@ export function iniciais(nome) {
   return ((partes[0]?.[0] || '') + (partes[partes.length - 1]?.[0] || '')).toUpperCase();
 }
 
-export function Botao({ titulo, onPress, variante = 'primario', disabled, style }) {
+export function Botao({ titulo, onPress, variante = 'primario', disabled, style, testID }) {
   const v = botaoVariantes[variante];
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(disabled) }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -69,6 +71,7 @@ export function TabBar({ ativa, navigation }) {
         return (
           <Pressable
             key={aba.rota}
+            testID={`aba-${aba.rota.toLowerCase()}`}
             accessibilityRole="tab"
             accessibilityState={{ selected: ativo }}
             onPress={() => navigation.navigate(aba.rota)}
@@ -92,7 +95,7 @@ export function TabBar({ ativa, navigation }) {
  * Tela padrão: fundo bege, rolagem, barra de abas opcional (`tab`) e
  * rodapé fixo opcional (`footer`) posicionado acima da barra.
  */
-export function Screen({ navigation, tab, footer, children, contentStyle, scroll = true }) {
+export function Screen({ navigation, tab, footer, children, contentStyle, scroll = true, testID }) {
   const insets = useSafeAreaInsets();
   const base = Math.max(insets.bottom, 12);
   const tabAltura = tab ? 68 + 24 + base : base + 16;
@@ -105,7 +108,7 @@ export function Screen({ navigation, tab, footer, children, contentStyle, scroll
     : {};
 
   return (
-    <View style={styles.screen}>
+    <View style={styles.screen} testID={testID}>
       <Container
         style={styles.flex}
         contentContainerStyle={

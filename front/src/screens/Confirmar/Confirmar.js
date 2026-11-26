@@ -5,6 +5,7 @@ import Icon, { MiniMap } from '../../components/Icons';
 import { Screen, Botao, MedicoAvatar } from '../../components/Layout';
 import { useApp, MESES } from '../../context/AppContext';
 import { HORARIOS, UNIDADE } from '../../data/mock';
+import { validarAgendamento } from '../../regras';
 import { colors, fonts } from '../../theme';
 
 const DIAS_SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
@@ -30,7 +31,7 @@ function montarSemanas(ano, mes) {
 }
 
 export default function Confirmar({ navigation, route }) {
-  const { medicoSelecionado, agendar, remarcar, consultas } = useApp();
+  const { medicoSelecionado, setMedicoSelecionado, agendar, remarcar, consultas } = useApp();
   const consultaRemarcar = route.params?.remarcarId
     ? consultas.find((c) => c.id === route.params.remarcarId)
     : null;
@@ -50,6 +51,7 @@ export default function Confirmar({ navigation, route }) {
   const [dataSel, setDataSel] = useState(hoje);
   const [horaSel, setHoraSel] = useState(HORARIOS[1]);
   const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState(null);
 
   const semanas = useMemo(() => montarSemanas(mesRef.getFullYear(), mesRef.getMonth()), [mesRef]);
   const podeVoltarMes = mesRef > new Date(hoje.getFullYear(), hoje.getMonth(), 1);
@@ -58,16 +60,24 @@ export default function Confirmar({ navigation, route }) {
   if (!medicoAtual) {
     // Acesso direto sem médico escolhido: volta para a seleção.
     return (
-      <Screen navigation={navigation}>
+      <Screen navigation={navigation} testID="tela-confirmar-sem-medico">
         <View style={styles.vazioBox}>
-          <Text style={styles.vazioTexto}>Selecione um médico para continuar.</Text>
-          <Botao titulo="Escolher médico" onPress={() => navigation.navigate('Agendar')} style={{ marginTop: 16 }} />
+          <Text testID="aviso-sem-medico" style={styles.vazioTexto}>Selecione um médico para continuar.</Text>
+          <Botao testID="botao-escolher-medico" titulo="Escolher médico" onPress={() => navigation.navigate('Agendar')} style={{ marginTop: 16 }} />
         </View>
       </Screen>
     );
   }
 
   const confirmar = async () => {
+    // Regra pura (src/regras.js): barra formulário incompleto e horário que já passou.
+    // Antes o app aceitava "hoje às 12:00" mesmo depois do meio-dia.
+    const erroValidacao = validarAgendamento({ medico: medicoAtual, data: dataSel, hora: horaSel });
+    if (erroValidacao) {
+      setErro(erroValidacao);
+      return;
+    }
+    setErro(null);
     setSalvando(true);
     try {
       if (consultaRemarcar) {
@@ -83,6 +93,8 @@ export default function Confirmar({ navigation, route }) {
           id: res.id,
           lembrete: res?.lembrete,
         });
+        // O próximo agendamento começa do zero (antes o médico anterior ficava marcado).
+        setMedicoSelecionado(null);
       }
     } finally {
       setSalvando(false);
@@ -92,8 +104,10 @@ export default function Confirmar({ navigation, route }) {
   return (
     <Screen
       navigation={navigation}
+      testID="tela-confirmar"
       footer={
         <Botao
+          testID="botao-confirmar"
           titulo={salvando ? 'Salvando...' : consultaRemarcar ? 'Confirmar nova data' : 'Confirmar agendamento'}
           onPress={confirmar}
           disabled={salvando}
@@ -109,7 +123,7 @@ export default function Confirmar({ navigation, route }) {
 
       <View style={styles.bloco}>
         <Text style={styles.rotulo}>Médico selecionado</Text>
-        <View style={styles.cardMedico}>
+        <View testID="medico-selecionado" style={styles.cardMedico}>
           <MedicoAvatar nome={medicoAtual.nome} fotoUri={medicoAtual.fotoUri} size={52} />
           <View style={{ flex: 1 }}>
             <Text style={styles.medicoNome}>{medicoAtual.nome}</Text>
@@ -124,10 +138,10 @@ export default function Confirmar({ navigation, route }) {
           <View style={styles.mesLinha}>
             <Text style={styles.mesTexto}>{MESES[mesRef.getMonth()]} {mesRef.getFullYear()}</Text>
             <View style={styles.mesSetas}>
-              <Pressable accessibilityRole="button" accessibilityLabel="Mês anterior" disabled={!podeVoltarMes} onPress={() => mudarMes(-1)} style={styles.seta}>
+              <Pressable testID="botao-mes-anterior" accessibilityRole="button" accessibilityLabel="Mês anterior" disabled={!podeVoltarMes} onPress={() => mudarMes(-1)} style={styles.seta}>
                 <Text style={[styles.setaTexto, !podeVoltarMes && { color: colors.disabled }]}>‹</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel="Próximo mês" onPress={() => mudarMes(1)} style={styles.seta}>
+              <Pressable testID="botao-proximo-mes" accessibilityRole="button" accessibilityLabel="Próximo mês" onPress={() => mudarMes(1)} style={styles.seta}>
                 <Text style={styles.setaTexto}>›</Text>
               </Pressable>
             </View>
@@ -155,10 +169,14 @@ export default function Confirmar({ navigation, route }) {
                 return (
                   <Pressable
                     key={j}
+                    testID={`dia-${c.dia}`}
                     disabled={passado}
                     accessibilityRole="button"
                     accessibilityState={{ selected: ativo, disabled: passado }}
-                    onPress={() => setDataSel(c.data)}
+                    onPress={() => {
+                      setDataSel(c.data);
+                      setErro(null);
+                    }}
                     style={styles.celula}
                   >
                     <View style={[styles.diaBolha, ativo && styles.diaBolhaAtiva]}>
@@ -170,15 +188,25 @@ export default function Confirmar({ navigation, route }) {
             </View>
           ))}
 
+          {erro && (
+            <Text testID="mensagem-erro" style={styles.erro}>
+              {erro}
+            </Text>
+          )}
+
           <View style={styles.horarios}>
             {HORARIOS.map((h) => {
               const ativo = h === horaSel;
               return (
                 <Pressable
                   key={h}
+                  testID={`horario-${h}`}
                   accessibilityRole="button"
                   accessibilityState={{ selected: ativo }}
-                  onPress={() => setHoraSel(h)}
+                  onPress={() => {
+                    setHoraSel(h);
+                    setErro(null);
+                  }}
                   style={[styles.horario, ativo && styles.horarioAtivo]}
                 >
                   <Text style={[styles.horarioTexto, ativo && styles.horarioTextoAtivo]}>{h}</Text>
@@ -192,6 +220,7 @@ export default function Confirmar({ navigation, route }) {
       <View style={styles.bloco}>
         <Text style={styles.h2}>Local</Text>
         <Pressable
+          testID="botao-como-chegar"
           accessibilityRole="button"
           onPress={() => navigation.navigate('ComoChegar')}
           style={({ pressed }) => [styles.local, { opacity: pressed ? 0.85 : 1 }]}
@@ -242,6 +271,7 @@ const styles = StyleSheet.create({
   localNome: { fontFamily: fonts.bold, fontSize: 15, color: colors.ink },
   localEnd: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2 },
   localDist: { fontFamily: fonts.bold, fontSize: 13, color: colors.green, marginTop: 4 },
+  erro: { fontFamily: fonts.medium, fontSize: 14, color: colors.danger, marginTop: 12 },
   vazioBox: { flex: 1, padding: 24, paddingTop: 120 },
   vazioTexto: { fontFamily: fonts.titleSemi, fontSize: 20, color: colors.ink },
 });

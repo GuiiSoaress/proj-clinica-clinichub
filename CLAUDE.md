@@ -18,8 +18,8 @@ ClinicHub é um app mobile de agendamento de consultas para clínica médica. É
 |---|---|
 | `front/` | App Expo / React Native (único código existente hoje). |
 | `back/` | Só um `README.md` vazio; backend ainda não existe. |
-| `Docs/` | ADRs em `.docx` (001 serviço de mapas, 002 push notifications, 003 SMS), `004-bluetooth-modo-real.md` (como ativar o BLE real), `Link Figma.txt` e imagem do protótipo. |
-| `README.md` | Descrição do projeto, squad e checklist de funcionalidades (com registros de decisões e auditorias). |
+| `Docs/` | Plano de testes e relatório de bugs da Aula 14 (`A14_05_*.docx`, `A14_06_*.docx`), ADRs em `.docx` (001 serviço de mapas, 002 push notifications, 003 SMS), `004-bluetooth-modo-real.md` (como ativar o BLE real), `Link Figma.txt` e imagem do protótipo. |
+| `README.md` | Descrição do projeto, squad e checklist de funcionalidades (ainda com trechos do template). |
 | `package-lock.json` (raiz) | Resquício; as dependências reais ficam em `front/`. |
 
 ## Decisões arquiteturais (ADRs em `Docs/`)
@@ -69,7 +69,7 @@ npm run android | ios | web
 
 No PowerShell deste ambiente a política de execução bloqueia `npx`; use `npx.cmd` (ex.: `npx.cmd expo install <pacote>`). Para dependências Expo, prefira `expo install` para obter versões compatíveis.
 
-Não há testes nem linter configurados. Verificação rápida de que tudo compila: `npx.cmd expo export --platform web --output-dir <pasta-temporária>` (apague a pasta depois).
+Testes (Aula 14): `npm test` (Jest + jest-expo + Testing Library 14; `render`/`fireEvent` são assíncronos e levam `await`). Configuração em `front/jest.config.json` e `front/jest.setup.js`; testes ficam ao lado do arquivo testado (`*.test.js`) e a integração em `front/App.test.js`. Busque elementos por `testID`, nunca por texto. Não há linter. Verificação rápida de que tudo compila: `npx.cmd expo export --platform web --output-dir <pasta-temporária>` (apague a pasta depois).
 
 ## Convenções
 
