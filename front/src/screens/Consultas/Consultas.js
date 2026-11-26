@@ -26,7 +26,7 @@ export default function Consultas({ navigation }) {
   }, [sincronizarLembretesAgenda]);
 
   return (
-    <Screen navigation={navigation} tab="Inicio">
+    <Screen navigation={navigation} tab="Inicio" testID="tela-consultas">
       <View style={styles.header}>
         <Text style={styles.titulo}>Minhas Consultas</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Agendar consulta" onPress={() => navigation.navigate('Agendar')} style={styles.logo}>
@@ -40,6 +40,7 @@ export default function Consultas({ navigation }) {
           return (
             <Pressable
               key={a.chave}
+              testID={`filtro-${a.chave}`}
               accessibilityRole="tab"
               accessibilityState={{ selected: ativo }}
               onPress={() => setAba(a.chave)}
@@ -68,9 +69,9 @@ export default function Consultas({ navigation }) {
         </Pressable>
       )}
 
-      <View style={styles.lista}>
+      <View testID="lista-consultas" style={styles.lista}>
         {lista.length === 0 ? (
-          <Text style={styles.vazio}>{atual.vazio}</Text>
+          <Text testID="lista-consultas-vazia" style={styles.vazio}>{atual.vazio}</Text>
         ) : (
           lista.map((c) => (
             <ConsultaCard key={c.id} consulta={c} onPress={() => navigation.navigate('Confirmada', { id: c.id })} />

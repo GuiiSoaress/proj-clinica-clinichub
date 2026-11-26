@@ -15,7 +15,8 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import * as ImagePicker from 'expo-image-picker';
+import { tirarFoto, CameraPermissaoNegada } from '../services/camera';
+import { validarMedico } from '../regras';
 import Icon from './Icons';
 import { Botao, iniciais } from './Layout';
 import { ESPECIALIDADES } from '../data/mock';
@@ -41,17 +42,18 @@ const initialMedicoState = {
 };
 
 // Sub-componente fora do MedicoForm para evitar perda de foco ao digitar
-const ValidatedInput = ({ label, value, error, onChangeText, style, ...props }) => (
+const ValidatedInput = ({ label, value, error, onChangeText, style, testID, ...props }) => (
   <View style={[styles.campo, style]}>
     <Text style={styles.rotulo}>{label}</Text>
     <TextInput
+      testID={testID}
       style={[styles.input, error && styles.inputErro]}
       value={value}
       onChangeText={onChangeText}
       placeholderTextColor={colors.muted2}
       {...props}
     />
-    {error && <Text style={styles.erroTexto}>{error}</Text>}
+    {error && <Text testID={testID ? `erro-${testID}` : undefined} style={styles.erroTexto}>{error}</Text>}
   </View>
 );
 
@@ -64,7 +66,6 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
 
   const isEditing = Boolean(medico);
   const buttonTitle = isEditing ? 'Concluir Edição' : 'Concluir Cadastro';
-  const requiredFields = ['nome', 'especialidade', 'crm'];
 
   // Quando a prop `medico` muda, sincroniza também `fotoUri` para não manter a
   // foto do médico anterior na tela.
@@ -76,30 +77,20 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
 
   const escolherFoto = async () => {
     try {
-      const permissao = await ImagePicker.requestCameraPermissionsAsync();
-      if (permissao.status !== 'granted') {
+      // A câmera fica isolada no service (src/services/camera.js).
+      const uri = await tirarFoto();
+      // `null` = usuário fechou a câmera sem tirar foto: escolha normal, não erro.
+      if (uri) {
+        setFotoUri(uri);
+      }
+    } catch (e) {
+      if (e instanceof CameraPermissaoNegada) {
         showAlert(
           'Permissão necessária',
           'Precisamos da permissão da câmera para tirar a foto de perfil do médico. Verifique os ajustes do aparelho.'
         );
         return;
       }
-
-      const resultado = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.6,
-      });
-
-      // Fechar a câmera sem tirar foto é escolha normal do usuário
-      if (resultado.canceled) {
-        return;
-      }
-
-      if (resultado.assets && resultado.assets.length > 0) {
-        setFotoUri(resultado.assets[0].uri);
-      }
-    } catch (e) {
       showAlert('Erro na câmera', 'Não foi possível abrir a câmera neste dispositivo.');
     }
   };
@@ -115,24 +106,16 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
     }
   };
 
+  // Regra de validação em função pura (src/regras.js), testada sem tela.
   const validate = () => {
-    let valid = true;
-    const newErrors = {};
-
-    requiredFields.forEach((field) => {
-      if (!formData[field] || String(formData[field]).trim() === '') {
-        newErrors[field] = 'Campo obrigatório';
-        valid = false;
-      }
-    });
-
+    const newErrors = validarMedico(formData);
     setErrors(newErrors);
-    return valid;
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
     if (!validate()) {
-      showAlert('Campos obrigatórios', 'Preencha nome, especialidade e CRM do médico.');
+      showAlert('Revise o formulário', 'Preencha nome, especialidade e CRM do médico e confira os campos destacados.');
       return;
     }
 
@@ -161,6 +144,7 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
+        testID="form-medico"
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -169,13 +153,14 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
         {/* Foto de perfil em destaque no topo do formulário */}
         <View style={styles.topoFoto}>
           <Pressable
+            testID="avatar-foto"
             accessibilityRole="button"
             accessibilityLabel="Tirar foto de perfil do médico"
             onPress={escolherFoto}
             style={({ pressed }) => [styles.avatarTouch, { opacity: pressed ? 0.85 : 1 }]}
           >
             {fotoUri ? (
-              <Image source={{ uri: fotoUri }} style={styles.fotoAvatar} />
+              <Image testID="foto-medico" source={{ uri: fotoUri }} style={styles.fotoAvatar} />
             ) : (
               <View style={styles.fotoPlaceholder}>
                 {formData.nome ? (
@@ -190,7 +175,7 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
             </View>
           </Pressable>
 
-          <Pressable accessibilityRole="button" onPress={escolherFoto} style={styles.botaoTirarFoto}>
+          <Pressable testID="botao-tirar-foto" accessibilityRole="button" onPress={escolherFoto} style={styles.botaoTirarFoto}>
             <Text style={styles.botaoTirarFotoTexto}>
               {fotoUri ? 'Tirar outra foto' : 'Tirar foto de perfil'}
             </Text>
@@ -198,6 +183,7 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
 
           {fotoUri && (
             <Pressable
+              testID="botao-remover-foto"
               accessibilityRole="button"
               onPress={() => setFotoUri(null)}
               style={styles.botaoRemoverFoto}
@@ -211,6 +197,7 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
           <Text style={styles.secaoTitulo}>Dados profissionais</Text>
 
           <ValidatedInput
+            testID="campo-nome"
             label="Nome completo *"
             placeholder="Ex.: Dra Camila Rocha"
             value={formData.nome}
@@ -234,6 +221,7 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
           </View>
 
           <ValidatedInput
+            testID="campo-crm"
             label="CRM *"
             placeholder="Ex.: 513115-SP"
             autoCapitalize="characters"
@@ -243,6 +231,7 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
           />
 
           <ValidatedInput
+            testID="campo-email"
             label="E-mail (opcional)"
             placeholder="medico@clinica.com"
             keyboardType="email-address"
@@ -253,6 +242,7 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
           />
 
           <ValidatedInput
+            testID="campo-telefone"
             label="Telefone (opcional)"
             placeholder="(11) 99999-9999"
             keyboardType="phone-pad"
@@ -264,11 +254,13 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
 
         <View style={styles.acoes}>
           <Botao
+            testID="botao-salvar-medico"
             titulo={salvando ? 'Salvando...' : buttonTitle}
             onPress={handleSubmit}
             disabled={salvando}
           />
           <Botao
+            testID="botao-cancelar-medico"
             titulo="Cancelar"
             variante="branco"
             onPress={onCancel || (() => navigation.goBack())}

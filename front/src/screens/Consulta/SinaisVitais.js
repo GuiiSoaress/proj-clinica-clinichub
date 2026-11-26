@@ -12,6 +12,7 @@ import { Screen, Botao } from '../../components/Layout';
 import { useApp, formatarData } from '../../context/AppContext';
 import { criarServicoBle, pedirPermissoes, MODO_SIMULADO } from '../../services/bluetooth';
 import { post } from '../../services/api';
+import { mediaLeituras, validarFrequenciaCardiaca } from '../../regras';
 import { colors, fonts } from '../../theme';
 
 const DURACAO_BUSCA_MS = 8000;        // busca precisa ter fim: gasta bateria
@@ -19,8 +20,8 @@ const LIMITE_SEM_LEITURA_MS = 5000;   // sem leitura por mais que isso = sinal p
 const MINIMO_LEITURAS = 3;            // uma leitura só não vale muito; a média de várias, sim
 const MAXIMO_LEITURAS = 60;           // guarda só as mais recentes
 
-const media = (valores) =>
-  valores.length ? Math.round(valores.reduce((s, v) => s + v, 0) / valores.length) : null;
+// Regras puras em src/regras.js (testadas sem tela).
+const media = mediaLeituras;
 
 export default function SinaisVitais({ navigation, route }) {
   const { consultas, registrarSinaisVitais, logout } = useApp();
@@ -194,12 +195,12 @@ export default function SinaisVitais({ navigation, route }) {
     enviar({ frequenciaMedia: media(leituras), quantidadeLeituras: leituras.length, origem: 'bluetooth' });
 
   const importarManual = () => {
-    const bpm = Number(valorManual.replace(',', '.'));
-    if (!Number.isFinite(bpm) || bpm < 20 || bpm > 250) {
-      setErro('Digite uma frequência cardíaca entre 20 e 250 bpm.');
+    const { valor, erro: erroValidacao } = validarFrequenciaCardiaca(valorManual);
+    if (erroValidacao) {
+      setErro(erroValidacao);
       return;
     }
-    enviar({ frequenciaMedia: Math.round(bpm), quantidadeLeituras: 1, origem: 'manual' });
+    enviar({ frequenciaMedia: valor, quantidadeLeituras: 1, origem: 'manual' });
   };
 
   // ------------------------------------------------------------ render
@@ -207,7 +208,7 @@ export default function SinaisVitais({ navigation, route }) {
   const mediaAtual = media(leituras);
 
   return (
-    <Screen navigation={navigation} contentStyle={{ paddingBottom: 48 }}>
+    <Screen navigation={navigation} contentStyle={{ paddingBottom: 48 }} testID="tela-sinais-vitais">
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={() => navigation.goBack()} style={styles.voltar}>
           <Icon name="back" size={22} color={colors.ink} />
@@ -227,6 +228,7 @@ export default function SinaisVitais({ navigation, route }) {
           <Text style={styles.texto}>Informe a frequência cardíaca medida no paciente.</Text>
           <View style={styles.campoLinha}>
             <TextInput
+              testID="campo-frequencia"
               style={styles.campo}
               value={valorManual}
               onChangeText={setValorManual}
@@ -239,6 +241,7 @@ export default function SinaisVitais({ navigation, route }) {
             <Text style={styles.unidade}>bpm</Text>
           </View>
           <Botao
+            testID="botao-importar-manual"
             titulo={enviando ? 'Gravando...' : 'Importar para o prontuário'}
             onPress={importarManual}
             disabled={enviando || !valorManual}
@@ -251,16 +254,18 @@ export default function SinaisVitais({ navigation, route }) {
           <Text style={styles.cardTitulo}>1. Encontre o aparelho</Text>
           <Text style={styles.texto}>Ligue o monitor cardíaco ou oxímetro e deixe-o perto do celular.</Text>
           <Botao
+            testID="botao-procurar"
             titulo={procurando ? 'Procurando...' : buscaConcluida ? 'Procurar novamente' : 'Procurar aparelhos'}
             onPress={procurar}
             disabled={procurando || !servicoRef.current}
             style={{ marginTop: 16 }}
           />
-          {procurando && <ActivityIndicator color={colors.green} style={{ marginTop: 16 }} />}
+          {procurando && <ActivityIndicator testID="carregando-busca" color={colors.green} style={{ marginTop: 16 }} />}
 
           {aparelhos.map((a) => (
             <Pressable
               key={a.id}
+              testID={`aparelho-${a.id}`}
               accessibilityRole="button"
               onPress={() => conectar(a)}
               style={({ pressed }) => [styles.aparelho, pressed && { opacity: 0.85 }]}
@@ -276,7 +281,7 @@ export default function SinaisVitais({ navigation, route }) {
           ))}
 
           {buscaConcluida && !procurando && aparelhos.length === 0 && (
-            <View style={styles.aviso}>
+            <View testID="aviso-sem-aparelhos" style={styles.aviso}>
               <Text style={styles.avisoTitulo}>Nenhum aparelho encontrado</Text>
               <Text style={styles.avisoTexto}>
                 Confira se o aparelho está ligado, com bateria e a menos de 2 metros do celular, se o Bluetooth do
@@ -287,7 +292,7 @@ export default function SinaisVitais({ navigation, route }) {
         </View>
       ) : fase === 'conectando' ? (
         // ------------------------------------------------ conectando
-        <View style={[styles.card, { alignItems: 'center', paddingVertical: 36 }]}>
+        <View testID="carregando-conexao" style={[styles.card, { alignItems: 'center', paddingVertical: 36 }]}>
           <ActivityIndicator size="large" color={colors.green} />
           <Text style={[styles.texto, { marginTop: 16, textAlign: 'center' }]}>
             Conectando ao aparelho... isso leva alguns segundos.
@@ -299,14 +304,14 @@ export default function SinaisVitais({ navigation, route }) {
           <Text style={styles.texto}>Conectado a {aparelho?.nome}</Text>
           <View style={styles.bpmLinha}>
             <Icon name="heart" size={32} color={sinalPerdido ? colors.muted2 : colors.coral} filled />
-            <Text style={[styles.bpm, sinalPerdido && { color: colors.muted2 }]}>
+            <Text testID="valor-bpm" style={[styles.bpm, sinalPerdido && { color: colors.muted2 }]}>
               {sinalPerdido || ultima == null ? '--' : ultima}
             </Text>
             <Text style={styles.unidade}>bpm</Text>
           </View>
 
           {sinalPerdido ? (
-            <View style={[styles.aviso, { alignSelf: 'stretch' }]}>
+            <View testID="aviso-sinal-perdido" style={[styles.aviso, { alignSelf: 'stretch' }]}>
               <Text style={styles.avisoTitulo}>Sinal perdido</Text>
               <Text style={styles.avisoTexto}>
                 O aparelho parou de enviar leituras. Aproxime-o do celular e verifique se ainda está ligado. Se não
@@ -326,23 +331,25 @@ export default function SinaisVitais({ navigation, route }) {
           )}
 
           <Botao
+            testID="botao-importar-bluetooth"
             titulo={enviando ? 'Gravando...' : 'Importar para o prontuário'}
             onPress={importarBluetooth}
             disabled={enviando || leituras.length < MINIMO_LEITURAS}
             style={{ marginTop: 20, alignSelf: 'stretch' }}
           />
-          <Botao titulo="Desconectar" variante="branco" onPress={desconectar} disabled={enviando} style={{ marginTop: 10, alignSelf: 'stretch' }} />
+          <Botao testID="botao-desconectar" titulo="Desconectar" variante="branco" onPress={desconectar} disabled={enviando} style={{ marginTop: 10, alignSelf: 'stretch' }} />
         </View>
       )}
 
       {erro && (
-        <View style={styles.erroBox}>
+        <View testID="mensagem-erro" style={styles.erroBox}>
           <Text style={styles.erroTexto}>{erro}</Text>
         </View>
       )}
 
       {/* Requisito: se o Bluetooth falhar, a consulta não pode parar. */}
       <Pressable
+        testID="botao-modo-manual"
         accessibilityRole="link"
         onPress={manual ? () => { setErro(null); setManual(false); } : abrirManual}
         style={styles.link}

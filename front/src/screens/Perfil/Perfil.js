@@ -32,7 +32,7 @@ export default function Perfil({ navigation }) {
   const ehRecepcao = usuario?.perfil === 'recepcao';
 
   return (
-    <Screen navigation={navigation} tab="Perfil" contentStyle={{ paddingTop: 0 }}>
+    <Screen navigation={navigation} tab="Perfil" contentStyle={{ paddingTop: 0 }} testID="tela-perfil">
       <View style={[styles.hero, { paddingTop: Math.max(insets.top, 24) + 12 }]}>
         <View style={styles.heroTopo}>
           <Text style={styles.heroTitulo}>Minha Conta</Text>

@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { View, Text, Image, Pressable, Alert, Platform, StyleSheet } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { tirarFoto, CameraPermissaoNegada } from '../services/camera';
 import Icon from './Icons';
 import { iniciais } from './Layout';
 import { colors, fonts } from '../theme';
@@ -23,27 +23,19 @@ function avisar(titulo, mensagem) {
  * Retorna a URI da foto escolhida, ou `null` se o usuário cancelar ou negar.
  */
 export async function capturarFotoComCamera() {
-  const permissao = await ImagePicker.requestCameraPermissionsAsync();
-
-  if (permissao.status !== 'granted') {
-    avisar(
-      'Permissão necessária',
-      'O acesso à câmera foi negado. Libere a câmera nas configurações do aparelho para tirar a foto de perfil.'
-    );
-    return null;
+  try {
+    // A câmera em si fica isolada no service (src/services/camera.js).
+    return await tirarFoto();
+  } catch (e) {
+    if (e instanceof CameraPermissaoNegada) {
+      avisar(
+        'Permissão necessária',
+        'O acesso à câmera foi negado. Libere a câmera nas configurações do aparelho para tirar a foto de perfil.'
+      );
+      return null;
+    }
+    throw e;
   }
-
-  const resultado = await ImagePicker.launchCameraAsync({
-    allowsEditing: true,
-    aspect: [1, 1],
-    quality: 0.6,
-  });
-
-  if (resultado.canceled) {
-    return null;
-  }
-
-  return resultado.assets?.[0]?.uri || null;
 }
 
 export default function FotoPerfilCampo({
@@ -122,7 +114,7 @@ export default function FotoPerfilCampo({
         </View>
       </Pressable>
 
-      <Pressable accessibilityRole="button" onPress={aoTocar} style={styles.botaoTextoTouch}>
+      <Pressable testID="botao-tirar-foto" accessibilityRole="button" onPress={aoTocar} style={styles.botaoTextoTouch}>
         <Text style={[styles.botaoTexto, claro && { color: colors.heroText }]}>
           {fotoUri ? 'Trocar foto' : rotuloBotao}
         </Text>

@@ -58,10 +58,10 @@ export default function Confirmar({ navigation, route }) {
   if (!medicoAtual) {
     // Acesso direto sem médico escolhido: volta para a seleção.
     return (
-      <Screen navigation={navigation}>
+      <Screen navigation={navigation} testID="tela-confirmar-sem-medico">
         <View style={styles.vazioBox}>
-          <Text style={styles.vazioTexto}>Selecione um médico para continuar.</Text>
-          <Botao titulo="Escolher médico" onPress={() => navigation.navigate('Agendar')} style={{ marginTop: 16 }} />
+          <Text testID="aviso-sem-medico" style={styles.vazioTexto}>Selecione um médico para continuar.</Text>
+          <Botao testID="botao-escolher-medico" titulo="Escolher médico" onPress={() => navigation.navigate('Agendar')} style={{ marginTop: 16 }} />
         </View>
       </Screen>
     );
@@ -92,8 +92,10 @@ export default function Confirmar({ navigation, route }) {
   return (
     <Screen
       navigation={navigation}
+      testID="tela-confirmar"
       footer={
         <Botao
+          testID="botao-confirmar"
           titulo={salvando ? 'Salvando...' : consultaRemarcar ? 'Confirmar nova data' : 'Confirmar agendamento'}
           onPress={confirmar}
           disabled={salvando}
@@ -109,7 +111,7 @@ export default function Confirmar({ navigation, route }) {
 
       <View style={styles.bloco}>
         <Text style={styles.rotulo}>Médico selecionado</Text>
-        <View style={styles.cardMedico}>
+        <View testID="medico-selecionado" style={styles.cardMedico}>
           <MedicoAvatar nome={medicoAtual.nome} fotoUri={medicoAtual.fotoUri} size={52} />
           <View style={{ flex: 1 }}>
             <Text style={styles.medicoNome}>{medicoAtual.nome}</Text>
@@ -124,10 +126,10 @@ export default function Confirmar({ navigation, route }) {
           <View style={styles.mesLinha}>
             <Text style={styles.mesTexto}>{MESES[mesRef.getMonth()]} {mesRef.getFullYear()}</Text>
             <View style={styles.mesSetas}>
-              <Pressable accessibilityRole="button" accessibilityLabel="Mês anterior" disabled={!podeVoltarMes} onPress={() => mudarMes(-1)} style={styles.seta}>
+              <Pressable testID="botao-mes-anterior" accessibilityRole="button" accessibilityLabel="Mês anterior" disabled={!podeVoltarMes} onPress={() => mudarMes(-1)} style={styles.seta}>
                 <Text style={[styles.setaTexto, !podeVoltarMes && { color: colors.disabled }]}>‹</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" accessibilityLabel="Próximo mês" onPress={() => mudarMes(1)} style={styles.seta}>
+              <Pressable testID="botao-proximo-mes" accessibilityRole="button" accessibilityLabel="Próximo mês" onPress={() => mudarMes(1)} style={styles.seta}>
                 <Text style={styles.setaTexto}>›</Text>
               </Pressable>
             </View>
@@ -155,6 +157,7 @@ export default function Confirmar({ navigation, route }) {
                 return (
                   <Pressable
                     key={j}
+                    testID={`dia-${c.dia}`}
                     disabled={passado}
                     accessibilityRole="button"
                     accessibilityState={{ selected: ativo, disabled: passado }}
@@ -176,6 +179,7 @@ export default function Confirmar({ navigation, route }) {
               return (
                 <Pressable
                   key={h}
+                  testID={`horario-${h}`}
                   accessibilityRole="button"
                   accessibilityState={{ selected: ativo }}
                   onPress={() => setHoraSel(h)}
@@ -192,6 +196,7 @@ export default function Confirmar({ navigation, route }) {
       <View style={styles.bloco}>
         <Text style={styles.h2}>Local</Text>
         <Pressable
+          testID="botao-como-chegar"
           accessibilityRole="button"
           onPress={() => navigation.navigate('ComoChegar')}
           style={({ pressed }) => [styles.local, { opacity: pressed ? 0.85 : 1 }]}

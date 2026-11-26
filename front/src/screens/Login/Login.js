@@ -7,6 +7,7 @@ import { Botao } from '../../components/Layout';
 import { colors, fonts } from '../../theme';
 import { useApp } from '../../context/AppContext';
 import { obterToken } from '../../services/sessao';
+import { validarLogin } from '../../regras';
 
 export default function Login({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -43,9 +44,10 @@ export default function Login({ navigation }) {
   const entrar = async () => {
     setErroLogin(null); // Limpa erros antigos ao tentar novamente
     
-    // Validação local: impede requisições inúteis se os campos estiverem em branco
-    if (!email.trim() || !senha) {
-      setErroLogin('Preencha e-mail e senha.');
+    // Validação local (regra pura em src/regras.js): impede requisições inúteis
+    const erroValidacao = validarLogin(email, senha);
+    if (erroValidacao) {
+      setErroLogin(erroValidacao);
       return;
     }
 
@@ -65,7 +67,7 @@ export default function Login({ navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView testID="tela-login" style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" bounces={false}>
         <View style={[styles.hero, { paddingTop: insets.top + 48 }]}>
           <View style={styles.logo}>
@@ -78,11 +80,12 @@ export default function Login({ navigation }) {
         <View style={styles.card}>
           <Text style={styles.titulo}>Entrar na sua conta</Text>
 
-          {erroLogin && <Text style={styles.erro}>{erroLogin}</Text>}
+          {erroLogin && <Text testID="mensagem-erro" style={styles.erro}>{erroLogin}</Text>}
 
           <View style={styles.campo}>
             <Text style={styles.rotulo}>E-mail</Text>
             <TextInput
+              testID="campo-email"
               value={email}
               onChangeText={setEmail}
               placeholder="voce@email.com"
@@ -98,6 +101,7 @@ export default function Login({ navigation }) {
           <View style={styles.campo}>
             <Text style={styles.rotulo}>Senha</Text>
             <TextInput
+              testID="campo-senha"
               value={senha}
               onChangeText={setSenha}
               placeholder="Digite sua senha"
@@ -108,8 +112,9 @@ export default function Login({ navigation }) {
             />
           </View>
 
-          <Botao 
-            titulo={entrando ? 'Entrando...' : 'Entrar'} 
+          <Botao
+            testID="botao-entrar"
+            titulo={entrando ? 'Entrando...' : 'Entrar'}
             onPress={entrar} 
             style={{ marginTop: 6, opacity: entrando ? 0.7 : 1 }} 
             disabled={entrando} 
@@ -117,6 +122,7 @@ export default function Login({ navigation }) {
 
           {biometriaDisponivel && (
             <Pressable
+              testID="botao-biometria"
               accessibilityRole="button"
               onPress={() => navigation.navigate('LoginBiometrico')}
               style={styles.biometria}

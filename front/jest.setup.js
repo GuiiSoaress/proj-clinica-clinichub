@@ -27,6 +27,11 @@ jest.mock('expo-secure-store', () => {
   };
 });
 
+// Safe area: sem aparelho não há "notch"; o mock oficial devolve margens zeradas.
+jest.mock('react-native-safe-area-context', () =>
+  require('react-native-safe-area-context/jest/mock').default
+);
+
 // Fontes: no teste não há o que carregar; responde "carregadas".
 jest.mock('expo-font', () => ({
   ...jest.requireActual('expo-font'),

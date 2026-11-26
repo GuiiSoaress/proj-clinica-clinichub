@@ -131,14 +131,14 @@ export default function LoginBiometrico({ navigation }) {
 
   if (verificando) {
     return (
-      <View style={styles.carregando}>
+      <View testID="carregando-biometria" style={styles.carregando}>
         <ActivityIndicator size="large" color={colors.green} />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.flex} contentContainerStyle={styles.scroll} bounces={false}>
+    <ScrollView testID="tela-login-biometrico" style={styles.flex} contentContainerStyle={styles.scroll} bounces={false}>
       <View style={[styles.hero, { paddingTop: insets.top + 48 }]}>
         <View style={styles.logo}>
           <Icon name="plus" size={28} color={colors.ink} />
@@ -165,11 +165,12 @@ export default function LoginBiometrico({ navigation }) {
               : 'Nenhuma digital ou biometria está cadastrada nos ajustes deste aparelho. Entre com seu e-mail e senha abaixo.'}
         </Text>
 
-        {erroBio && <Text style={styles.erro}>{erroBio}</Text>}
-        {mensagemCancelamento && <Text style={styles.aviso}>{mensagemCancelamento}</Text>}
+        {erroBio && <Text testID="mensagem-erro" style={styles.erro}>{erroBio}</Text>}
+        {mensagemCancelamento && <Text testID="mensagem-aviso" style={styles.aviso}>{mensagemCancelamento}</Text>}
 
         {podeMostrarBotaoBiometria && (
           <Botao
+            testID="botao-biometria"
             titulo={autenticando ? 'Verificando digital...' : 'Entrar com biometria'}
             onPress={autenticarComBiometria}
             disabled={autenticando}
@@ -179,6 +180,7 @@ export default function LoginBiometrico({ navigation }) {
 
         {/* Link SEMPRE visível: biometria é atalho, nunca requisito */}
         <Pressable
+          testID="link-email-senha"
           accessibilityRole="link"
           onPress={irParaEmailSenha}
           style={styles.linkSenha}
