@@ -28,6 +28,9 @@ const BASE_URL = `http://${HOST_API}:3001`;
 // presa em "Entrando..."/"Carregando..." para sempre (bug encontrado na Aula 14).
 export const TEMPO_LIMITE_MS = 10000;
 
+// Ponto de ajuste para testes de tela (encurtar o teto sem esperar 10 s de verdade).
+export const configuracaoApi = { tempoLimiteMs: TEMPO_LIMITE_MS };
+
 /**
  * Erro lançado quando a API não responde: fora do ar, sem rede ou lenta demais.
  * Não tem `status` HTTP — as telas usam isso para diferenciar de um 4xx/5xx.
@@ -73,7 +76,7 @@ export async function apiFetch(endpoint, options = {}) {
     temporizador = setTimeout(() => {
       controle?.abort();
       rejeitar(new ApiIndisponivel('tempo_esgotado'));
-    }, TEMPO_LIMITE_MS);
+    }, configuracaoApi.tempoLimiteMs);
   });
 
   try {
