@@ -42,6 +42,10 @@ export default function SinaisVitais({ navigation, route }) {
   const [erro, setErro] = useState(null);
   const [enviando, setEnviando] = useState(false);
 
+  // Ref não provoca nova renderização: sem este estado o botão "Procurar"
+  // nascia desabilitado e só liberava se algo mais redesenhasse a tela.
+  const [servicoPronto, setServicoPronto] = useState(false);
+
   const [manual, setManual] = useState(false);
   const [valorManual, setValorManual] = useState('');
 
@@ -51,6 +55,7 @@ export default function SinaisVitais({ navigation, route }) {
   useEffect(() => {
     try {
       servicoRef.current = criarServicoBle();
+      setServicoPronto(true);
     } catch (e) {
       servicoRef.current = null;
       setErro('O Bluetooth não está disponível nesta versão do app. Digite os valores manualmente.');
@@ -257,7 +262,7 @@ export default function SinaisVitais({ navigation, route }) {
             testID="botao-procurar"
             titulo={procurando ? 'Procurando...' : buscaConcluida ? 'Procurar novamente' : 'Procurar aparelhos'}
             onPress={procurar}
-            disabled={procurando || !servicoRef.current}
+            disabled={procurando || !servicoPronto}
             style={{ marginTop: 16 }}
           />
           {procurando && <ActivityIndicator testID="carregando-busca" color={colors.green} style={{ marginTop: 16 }} />}
