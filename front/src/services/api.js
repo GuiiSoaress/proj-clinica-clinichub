@@ -24,6 +24,27 @@ function descobrirHostApi() {
 const HOST_API = descobrirHostApi();
 const BASE_URL = `http://${HOST_API}:3001`;
 
+// Teto de espera por resposta da API. Sem ele, uma API lenta deixava a tela
+// presa em "Entrando..."/"Carregando..." para sempre (bug encontrado na Aula 14).
+export const TEMPO_LIMITE_MS = 10000;
+
+/**
+ * Erro lançado quando a API não responde: fora do ar, sem rede ou lenta demais.
+ * Não tem `status` HTTP — as telas usam isso para diferenciar de um 4xx/5xx.
+ * `motivo`: 'offline' | 'tempo_esgotado'.
+ */
+export class ApiIndisponivel extends Error {
+  constructor(motivo) {
+    super(
+      motivo === 'tempo_esgotado'
+        ? 'O servidor da clínica demorou demais para responder. Tente novamente em instantes.'
+        : 'Não foi possível conectar ao servidor da clínica. Verifique sua internet e tente novamente.'
+    );
+    this.name = 'ApiIndisponivel';
+    this.motivo = motivo;
+  }
+}
+
 /**
  * Wrapper (encapsulador) em volta da função fetch padrão.
  * Ele serve para interceptar a requisição antes de sair e injetar o Token no cabeçalho.
@@ -43,13 +64,33 @@ export async function apiFetch(endpoint, options = {}) {
     headers['Authorization'] = `Bearer ${sessao.token}`;
   }
 
-  // 4. Executa a requisição real de fato para a URL completa (http://localhost:3001/endpoint)
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
+  // 4. Executa a requisição real de fato para a URL completa (http://localhost:3001/endpoint),
+  //    com teto de TEMPO_LIMITE_MS. Falha de rede vira ApiIndisponivel com mensagem amigável
+  //    (antes a tela mostrava o texto técnico "Network request failed").
+  const controle = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  let temporizador;
+  const tempoEsgotado = new Promise((_, rejeitar) => {
+    temporizador = setTimeout(() => {
+      controle?.abort();
+      rejeitar(new ApiIndisponivel('tempo_esgotado'));
+    }, TEMPO_LIMITE_MS);
   });
 
-  return response;
+  try {
+    return await Promise.race([
+      fetch(`${BASE_URL}${endpoint}`, {
+        ...options,
+        headers,
+        ...(controle ? { signal: controle.signal } : {}),
+      }),
+      tempoEsgotado,
+    ]);
+  } catch (e) {
+    if (e instanceof ApiIndisponivel) throw e;
+    throw new ApiIndisponivel('offline');
+  } finally {
+    clearTimeout(temporizador);
+  }
 }
 
 /**

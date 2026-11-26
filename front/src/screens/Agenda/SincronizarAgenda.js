@@ -287,7 +287,7 @@ export default function SincronizarAgenda({ navigation }) {
                   : erroStatus === 403
                     ? 'Esta verificação é permitida apenas para o perfil de recepção.'
                     : !erroStatus
-                      ? `${erro}. Verifique se a auth-api está rodando em ${BASE_URL} e se o aparelho está na mesma rede.`
+                      ? `${String(erro).replace(/\.$/, '')}. Verifique se a auth-api está rodando em ${BASE_URL} e se o aparelho está na mesma rede.`
                       : erro}
               </Text>
               {erroStatus === 401 && (
@@ -321,6 +321,7 @@ export default function SincronizarAgenda({ navigation }) {
                 ]}
               >
                 <Text
+                  testID="resumo-conflitos"
                   style={[
                     styles.metricaValor,
                     { color: totalConflitos > 0 ? colors.danger : colors.green },
